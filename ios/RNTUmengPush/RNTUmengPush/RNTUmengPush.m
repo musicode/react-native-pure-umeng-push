@@ -1,8 +1,479 @@
 
 #import "RNTUmengPush.h"
 
+#import <UMPush/UMessage.h>
+#import <React/RCTConvert.h>
+
+static NSString *RNTUmengPushEvent_Register = @"RNTUmengPushEvent_Register";
+static NSString *RNTUmengPushEvent_LocalNotification = @"RNTUmengPushEvent_LocalNotification";
+static NSString *RNTUmengPushEvent_RemoteNotification = @"RNTUmengPushEvent_RemoteNotification";
+
+static NSDictionary *RNTUmengPush_LaunchOptions = nil;
+
 @implementation RNTUmengPush
 
 RCT_EXPORT_MODULE(RNTUmengPush);
+
++ (BOOL)requiresMainQueueSetup {
+    return YES;
+}
+
+- (instancetype)init {
+    if (self = [super init]) {
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                selector:@selector(didReceiveDeviceToken:)
+                                                name:RNTUmengPushEvent_Register
+                                                object:nil];
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                selector:@selector(didReceiveLocalNotification:)
+                                                name:RNTUmengPushEvent_LocalNotification
+                                                object:nil];
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                selector:@selector(didReceiveRemoteNotification:)
+                                                name:RNTUmengPushEvent_RemoteNotification
+                                                object:nil];
+    }
+    return self;
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (NSArray<NSString *> *)supportedEvents {
+  return @[
+      @"register",
+      @"localNotification",
+      @"remoteNotification",
+  ];
+}
+
+
++ (void)didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    RNTUmengPush_LaunchOptions = launchOptions;
+}
+
++ (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+    
+    if (![deviceToken isKindOfClass:[NSData class]]) {
+        return;
+    }
+    
+    const unsigned *tokenBytes = (const unsigned *)[deviceToken bytes];
+    NSString *hexToken = [NSString stringWithFormat:@"%08x%08x%08x%08x%08x%08x%08x%08x",
+                          ntohl(tokenBytes[0]), ntohl(tokenBytes[1]), ntohl(tokenBytes[2]),
+                          ntohl(tokenBytes[3]), ntohl(tokenBytes[4]), ntohl(tokenBytes[5]),
+                          ntohl(tokenBytes[6]), ntohl(tokenBytes[7])];
+
+    [[NSNotificationCenter defaultCenter] postNotificationName:RNTUmengPushEvent_Register object:@{
+        @"deviceToken": hexToken,
+    }];
+
+}
+
++ (void)didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
+
+    [UMessage setAutoAlert:NO];
+    
+    if ([[[UIDevice currentDevice] systemVersion]intValue] < 10) {
+        [UMessage didReceiveRemoteNotification:userInfo];
+        [[NSNotificationCenter defaultCenter] postNotificationName:RNTUmengPushEvent_RemoteNotification object:userInfo];
+    }
+    
+    completionHandler(UIBackgroundFetchResultNewData);
+    
+}
+
++ (void)willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler API_AVAILABLE(ios(10.0)) {
+    
+    NSDictionary * userInfo = notification.request.content.userInfo;
+    
+    if ([notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]]) {
+        [UMessage setAutoAlert:NO];
+        // 应用处于前台时的远程推送
+        [UMessage didReceiveRemoteNotification:userInfo];
+        [[NSNotificationCenter defaultCenter] postNotificationName:RNTUmengPushEvent_RemoteNotification object:userInfo];
+    }
+    else {
+        // 应用处于前台时的本地推送接受
+    }
+    
+    completionHandler(UNNotificationPresentationOptionSound|UNNotificationPresentationOptionBadge|UNNotificationPresentationOptionAlert);
+    
+}
+
++ (void)didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler API_AVAILABLE(ios(10.0)) {
+    
+    NSDictionary *userInfo = response.notification.request.content.userInfo;
+
+    if ([response.notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]]) {
+        // 应用处于后台时的远程推送
+        [UMessage didReceiveRemoteNotification:userInfo];
+        [[NSNotificationCenter defaultCenter] postNotificationName:RNTUmengPushEvent_RemoteNotification object:userInfo];
+    }
+    else {
+        // 应用处于后台时的本地推送接受
+    }
+    
+}
+
+- (void)didReceiveDeviceToken:(NSNotification *)notification {
+
+    NSDictionary *userInfo = notification.object;
+        
+    [self sendEventWithName:@"deviceToken" body:userInfo];
+    
+}
+
+- (void)didReceiveLocalNotification:(NSNotification *)notification {
+
+    NSDictionary *userInfo = notification.object;
+        
+    [self sendEventWithName:@"localNotification" body:userInfo];
+    
+}
+
+- (void)didReceiveRemoteNotification:(NSNotification *)notification {
+
+    NSDictionary *userInfo = notification.object;
+        
+    [self sendEventWithName:@"remoteNotification" body:userInfo];
+    
+}
+
+
+
+
+// 获取 device token
+RCT_EXPORT_METHOD(start:(NSString *)appKey
+                  
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+
+    // Push 组件基本功能配置
+    UMessageRegisterEntity * entity = [[UMessageRegisterEntity alloc] init];
+    
+    // type 是对推送的几个参数的选择，可以选择一个或者多个
+    // 默认是三个全部打开，即：声音，弹窗，角标
+    entity.types = UMessageAuthorizationOptionBadge|UMessageAuthorizationOptionSound|UMessageAuthorizationOptionAlert;
+
+    // 如果你期望使用交互式(只有iOS 8.0及以上有)的通知，请参考下面注释部分的初始化代码
+    if (([[[UIDevice currentDevice] systemVersion]intValue] >= 8) && ([[[UIDevice currentDevice] systemVersion]intValue] < 10)) {
+        
+        UIMutableUserNotificationAction *action1 = [[UIMutableUserNotificationAction alloc] init];
+        action1.identifier = @"action1_identifier";
+        action1.title = @"打开应用";
+        // 当点击的时候启动程序
+        action1.activationMode = UIUserNotificationActivationModeForeground;
+        
+        UIMutableUserNotificationAction *action2 = [[UIMutableUserNotificationAction alloc] init];
+        action2.identifier = @"action2_identifier";
+        action2.title = @"忽略";
+        // 当点击的时候不启动程序，在后台处理
+        action2.activationMode = UIUserNotificationActivationModeBackground;
+        // 需要解锁才能处理，如果action.activationMode = UIUserNotificationActivationModeForeground; 则这个属性被忽略
+        action2.authenticationRequired = YES;
+        // 是否显示为消极按钮
+        action2.destructive = YES;
+        
+        UIMutableUserNotificationCategory *category1 = [[UIMutableUserNotificationCategory alloc] init];
+        // 这组动作的唯一标示
+        category1.identifier = @"category1";
+        [category1 setActions:@[action1, action2] forContext:(UIUserNotificationActionContextDefault)];
+        
+        NSSet *categories = [NSSet setWithObjects:category1, nil];
+        entity.categories = categories;
+        
+    }
+    // 如果要在 iOS10 显示交互式的通知，必须注意实现以下代码
+    else if (@available(iOS 10.0, *)) {
+        
+        UNNotificationAction *action1 = [UNNotificationAction actionWithIdentifier:@"action1_identifier" title:@"打开应用" options:UNNotificationActionOptionForeground];
+        
+        UNNotificationAction *action2 = [UNNotificationAction actionWithIdentifier:@"action2_identifier" title:@"忽略" options:UNNotificationActionOptionForeground];
+        
+        // UNNotificationCategoryOptionNone
+        // UNNotificationCategoryOptionCustomDismissAction  清除通知被触发会走通知的代理方法
+        // UNNotificationCategoryOptionAllowInCarPlay       适用于行车模式
+        UNNotificationCategory *category1 = [UNNotificationCategory categoryWithIdentifier:@"category1" actions:@[action1, action2]   intentIdentifiers:@[] options:UNNotificationCategoryOptionCustomDismissAction];
+        
+        NSSet *categories = [NSSet setWithObjects:category1, nil];
+        entity.categories=categories;
+
+    }
+    
+    [UMessage registerForRemoteNotificationsWithLaunchOptions:RNTUmengPush_LaunchOptions Entity:entity completionHandler:^(BOOL granted, NSError * _Nullable error) {
+        
+        if (granted) {
+            resolve(@{});
+        }
+        else {
+            reject(@"-1", @"permissions is not granted.", nil);
+        }
+        
+    }];
+    
+}
+
+// 关闭消息推送
+// iOS10.0，iOS10.1 两个版本存在系统 bug，调用此方法后可能会导致无法再次打开推送
+RCT_EXPORT_METHOD(stop) {
+    [UMessage unregisterForRemoteNotifications];
+}
+
+// 设置是否允许 SDK 自动清空角标，默认自动角标清零
+RCT_EXPORT_METHOD(setBadgeClear:(BOOL)value) {
+    [UMessage setBadgeClear:value];
+}
+
+// 设置是否允许 SDK 当应用在前台运行收到 Push 时弹出 Alert 框
+RCT_EXPORT_METHOD(setAutoAlert:(BOOL)value) {
+    [UMessage setAutoAlert:value];
+}
+
+
+// 获取所有标签
+RCT_EXPORT_METHOD(getTags:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    
+    [UMessage getTags:^(NSSet * _Nonnull responseTags, NSInteger remain, NSError * _Nonnull error) {
+        if (error) {
+            NSString *msg = [self getErrorMessage:error];
+            reject([NSString stringWithFormat:@"%ld", (long)error.code], msg, nil);
+        }
+        else {
+            if ([responseTags isKindOfClass:[NSSet class]]) {
+                NSArray *tags = responseTags.allObjects;
+                resolve(@{
+                    @"tags": tags,
+                });
+                return;
+            }
+            reject(@"-1", @"error", nil);
+        }
+    }];
+    
+}
+
+// 添加标签
+RCT_EXPORT_METHOD(addTags:(NSArray *)tags
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    
+    [UMessage addTags:tags response:^(id  _Nonnull responseObject, NSInteger remain, NSError * _Nonnull error) {
+
+        if (error) {
+            NSString *msg = [self getErrorMessage:error];
+            reject([NSString stringWithFormat:@"%ld", (long)error.code], msg, nil);
+        }
+        else {
+            if ([responseObject isKindOfClass:[NSDictionary class]]) {
+                NSDictionary *dict = responseObject;
+                if ([dict[@"success"] isEqualToString:@"ok"]) {
+                    resolve(@{
+                        @"remain": @(remain),
+                    });
+                    return;
+                }
+            }
+            reject(@"-1", @"error", nil);
+        }
+        
+    }];
+    
+}
+
+// 删除标签
+RCT_EXPORT_METHOD(removeTags:(NSArray *)tags
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    
+    [UMessage deleteTags:tags response:^(id  _Nonnull responseObject, NSInteger remain, NSError * _Nonnull error) {
+        
+        if (error) {
+            NSString *msg = [self getErrorMessage:error];
+            reject([NSString stringWithFormat:@"%ld", (long)error.code], msg, nil);
+        }
+        else {
+            if ([responseObject isKindOfClass:[NSDictionary class]]) {
+                NSDictionary *dict = responseObject;
+                if ([dict[@"success"] isEqualToString:@"ok"]) {
+                    resolve(@{
+                        @"remain": @(remain),
+                    });
+                    return;
+                }
+            }
+            reject(@"-1", @"error", nil);
+        }
+        
+    }];
+    
+}
+
+// 绑定别名
+RCT_EXPORT_METHOD(addAlias:(NSString *)alias
+                  type:(NSString *)type
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    
+    NSString *innerType = [self getAliasType:type];
+    
+    [UMessage addAlias:alias type:innerType response:^(id  _Nonnull responseObject, NSError * _Nonnull error) {
+        
+        if (error) {
+            NSString *msg = [self getErrorMessage:error];
+            reject([NSString stringWithFormat:@"%ld", (long)error.code], msg, nil);
+        }
+        else {
+            if ([responseObject isKindOfClass:[NSDictionary class]]) {
+                NSDictionary *dict = responseObject;
+                if ([dict[@"success"] isEqualToString:@"ok"]) {
+                    resolve(@{});
+                    return;
+                }
+            }
+            reject(@"-1", @"error", nil);
+        }
+        
+    }];
+    
+}
+
+// 重置别名
+RCT_EXPORT_METHOD(setAlias:(NSString *)alias
+                  type:(NSString *)type
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    
+    NSString *innerType = [self getAliasType:type];
+
+    [UMessage setAlias:alias type:innerType response:^(id  _Nonnull responseObject, NSError * _Nonnull error) {
+        
+        if (error) {
+            NSString *msg = [self getErrorMessage:error];
+            reject([NSString stringWithFormat:@"%ld", (long)error.code], msg, nil);
+        }
+        else {
+            if ([responseObject isKindOfClass:[NSDictionary class]]) {
+                NSDictionary *dict = responseObject;
+                if ([dict[@"success"] isEqualToString:@"ok"]) {
+                    resolve(@{});
+                    return;
+                }
+            }
+            reject(@"-1", @"error", nil);
+        }
+        
+    }];
+    
+}
+
+// 移除别名
+RCT_EXPORT_METHOD(removeAlias:(NSString *)alias
+                  type:(NSString *)type
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    
+    NSString *innerType = [self getAliasType:type];
+    
+    [UMessage removeAlias:alias type:innerType response:^(id  _Nonnull responseObject, NSError * _Nonnull error) {
+        
+        if (error) {
+            NSString *msg = [self getErrorMessage:error];
+            reject([NSString stringWithFormat:@"%ld", (long)error.code], msg, nil);
+        }
+        else {
+            if ([responseObject isKindOfClass:[NSDictionary class]]) {
+                NSDictionary *dict = responseObject;
+                if ([dict[@"success"] isEqualToString:@"ok"]) {
+                    resolve(@{});
+                    return;
+                }
+            }
+            reject(@"-1", @"error", nil);
+        }
+        
+    }];
+    
+}
+
+- (NSString *)getAliasType:(NSString *)type {
+    
+    NSString *innerType = @"custom";
+    
+    // 新浪微博
+    if ([type isEqualToString:@"sina"]) {
+        innerType = kUMessageAliasTypeSina;
+    }
+    // 腾讯微博
+    else if ([type isEqualToString:@"tencent"]) {
+        innerType = kUMessageAliasTypeTencent;
+    }
+    // QQ
+    else if ([type isEqualToString:@"qq"]) {
+        innerType = kUMessageAliasTypeQQ;
+    }
+    // 微信
+    else if ([type isEqualToString:@"weixin"]) {
+        innerType = kUMessageAliasTypeWeiXin;
+    }
+    // 百度
+    else if ([type isEqualToString:@"baidu"]) {
+        innerType = kUMessageAliasTypeBaidu;
+    }
+    // 人人网
+    else if ([type isEqualToString:@"renren"]) {
+        innerType = kUMessageAliasTypeRenRen;
+    }
+    // 开心网
+    else if ([type isEqualToString:@"kaixin"]) {
+        innerType = kUMessageAliasTypeKaixin;
+    }
+    // 豆瓣
+    else if ([type isEqualToString:@"douban"]) {
+        innerType = kUMessageAliasTypeDouban;
+    }
+    // facebook
+    else if ([type isEqualToString:@"facebook"]) {
+        innerType = kUMessageAliasTypeFacebook;
+    }
+    // twitter
+    else if ([type isEqualToString:@"twitter"]) {
+        innerType = kUMessageAliasTypeTwitter;
+    }
+    
+    
+    return innerType;
+    
+}
+
+- (NSString *)getErrorMessage:(NSError *)error {
+    switch (error.code) {
+        case kUMessageErrorUnknown:
+            return @"未知错误";
+            break;
+        case kUMessageErrorResponseErr:
+            return @"响应出错";
+            break;
+        case kUMessageErrorOperateErr:
+            return @"操作失败";
+            break;
+        case kUMessageErrorParamErr:
+            return @"参数非法";
+            break;
+        case kUMessageErrorDependsErr:
+            return @"条件不足(如:还未获取device_token，添加tag是不成功的)";
+            break;
+        case kUMessageErrorServerSetErr:
+            return @"服务器限定操作";
+            break;
+        default:
+            break;
+    }
+    return error.localizedDescription;
+}
 
 @end

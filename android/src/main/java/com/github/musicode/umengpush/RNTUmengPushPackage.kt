@@ -10,7 +10,7 @@ import com.facebook.react.uimanager.ViewManager
 class RNTUmengPushPackage : ReactPackage {
 
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-        return Arrays.asList<NativeModule>(RNTDimensionModule(reactContext))
+        return Arrays.asList<NativeModule>(RNTUmengPushModule(reactContext))
     }
 
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {

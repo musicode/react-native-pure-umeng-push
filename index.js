@@ -1,24 +1,26 @@
 
-import { NativeModules } from 'react-native'
+import { NativeEventEmitter, NativeModules } from 'react-native'
 
-const { RNTDimension } = NativeModules
+const { RNTUmengPush } = NativeModules
+
+const eventEmitter = new NativeEventEmitter(RNTUmengPush)
+
+eventEmitter.addListener('deviceToken', function (data) {
+  console.log('deviceToken', data)
+})
+
+eventEmitter.addListener('localNotification', function (data) {
+  console.log('localNotification', data)
+})
+
+eventEmitter.addListener('remoteNotification', function (data) {
+  console.log('remoteNotification', data)
+})
 
 export default {
 
-  getStatusBarHeight() {
-    return RNTDimension.getStatusBarHeight()
-  },
-
-  getNavigationBarInfo() {
-    return RNTDimension.getNavigationBarInfo()
-  },
-
-  getScreenSize() {
-    return RNTDimension.getScreenSize()
-  },
-
-  getSafeArea() {
-    return RNTDimension.getSafeArea()
+  start(appKey) {
+    return RNTUmengPush.start(appKey)
   },
 
 }
