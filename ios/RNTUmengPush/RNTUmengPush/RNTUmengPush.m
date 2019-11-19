@@ -223,17 +223,6 @@ RCT_EXPORT_METHOD(stop) {
     [UMessage unregisterForRemoteNotifications];
 }
 
-// 设置是否允许 SDK 自动清空角标，默认自动角标清零
-RCT_EXPORT_METHOD(setBadgeClear:(BOOL)value) {
-    [UMessage setBadgeClear:value];
-}
-
-// 设置是否允许 SDK 当应用在前台运行收到 Push 时弹出 Alert 框
-RCT_EXPORT_METHOD(setAutoAlert:(BOOL)value) {
-    [UMessage setAutoAlert:value];
-}
-
-
 // 获取所有标签
 RCT_EXPORT_METHOD(getTags:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
@@ -397,6 +386,23 @@ RCT_EXPORT_METHOD(removeAlias:(NSString *)alias
         }
         
     }];
+    
+}
+
+// 高级设置
+RCT_EXPORT_METHOD(setAdvanced:(NSDictionary*)options) {
+    
+    // 设置是否允许 SDK 自动清空角标，默认自动角标清零
+    if ([options objectForKey:@"badgeClear"]) {
+        BOOL value = [[options objectForKey:@"badgeClear"] boolValue];
+        [UMessage setBadgeClear:value];
+    }
+
+    // 设置是否允许 SDK 当应用在前台运行收到 Push 时弹出 Alert 框
+    if ([options objectForKey:@"autoAlert"]) {
+        BOOL value = [[options objectForKey:@"autoAlert"] boolValue];
+        [UMessage setAutoAlert:value];
+    }
     
 }
 

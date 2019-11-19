@@ -1,6 +1,7 @@
 package com.github.musicode.umengpush
 
 import android.app.Activity
+import android.app.Application
 import android.content.Context
 import com.facebook.react.bridge.*
 import android.content.Intent
@@ -12,12 +13,14 @@ import com.umeng.message.*
 import com.umeng.message.common.inter.ITagManager
 import com.umeng.message.entity.UMessage
 import com.umeng.message.tag.TagManager
+import org.android.agoo.huawei.HuaWeiRegister
 
 class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), ActivityEventListener, LifecycleEventListener {
 
     companion object {
-        fun init(context: Context, appKey: String, appSecret: String, channel: String) {
-            UMConfigure.init(context, appKey, channel, UMConfigure.DEVICE_TYPE_PHONE, appSecret)
+        fun init(app: Application, appKey: String, appSecret: String, channel: String) {
+            UMConfigure.init(app, appKey, channel, UMConfigure.DEVICE_TYPE_PHONE, appSecret)
+            HuaWeiRegister.register(app)
         }
     }
 
