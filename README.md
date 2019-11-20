@@ -1,5 +1,7 @@
 # react-native-pure-dimension
 
+友盟推送烂的一笔，集成完收不到推送，不用往下看了。
+
 This is a module which help you get screen dimension info.
 
 ## Installation
