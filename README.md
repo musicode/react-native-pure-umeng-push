@@ -30,7 +30,16 @@ modify `AppDelegate.m`
 
 ### Android
 
-nothing to do.
+`android/build.gradle` add the umeng maven repo.
+
+```
+allprojects {
+    repositories {
+        // add this line
+        maven { url 'https://dl.bintray.com/umsdk/release' }
+    }
+}
+```
 
 ## Usage
 

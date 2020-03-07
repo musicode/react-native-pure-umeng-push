@@ -1,6 +1,7 @@
 
 #import "RNTUmengPush.h"
 
+#import <UMCommon/UMConfigure.h>
 #import <UMPush/UMessage.h>
 #import <React/RCTConvert.h>
 
@@ -9,6 +10,51 @@ static NSString *RNTUmengPushEvent_LocalNotification = @"RNTUmengPushEvent_Local
 static NSString *RNTUmengPushEvent_RemoteNotification = @"RNTUmengPushEvent_RemoteNotification";
 
 static NSDictionary *RNTUmengPush_LaunchOptions = nil;
+
+// 获取自定义键值对
+static NSDictionary* RNTUmengPush_GetCustomContent(NSDictionary *userInfo) {
+
+    NSMutableDictionary *customContent = [[NSMutableDictionary alloc] init];
+
+    for (NSString *key in userInfo) {
+        // d p aps 这三个是所有通知都带的字段
+        if (![key isEqual: @"d"] && ![key isEqual: @"p"] && ![key isEqual: @"aps"]) {
+            customContent[key] = userInfo[key];
+        }
+    }
+
+    return customContent;
+    
+};
+
+// 获取推送消息
+static NSMutableDictionary* RNTUmengPush_GetNotification(NSDictionary *userInfo) {
+
+    NSDictionary *customContent = RNTUmengPush_GetCustomContent(userInfo);
+
+    NSMutableDictionary *resultDict = [[NSMutableDictionary alloc] init];
+    resultDict[@"custom_content"] = customContent;
+
+    NSDictionary *alertDict = userInfo[@"aps"][@"alert"];
+    if (alertDict) {
+        resultDict[@"body"] = @{
+                          @"title": alertDict[@"title"] ?: @"",
+                          @"subtitle": alertDict[@"subtitle"] ?: @"",
+                          @"content": alertDict[@"body"] ?: @""
+                          };
+    }
+    else {
+        NSString *alertStr = userInfo[@"aps"][@"alert"];
+        resultDict[@"body"] = @{
+                          @"title": alertStr ?: @"",
+                          @"subtitle": @"",
+                          @"content": @""
+                          };
+    }
+
+    return resultDict;
+
+};
 
 @implementation RNTUmengPush
 
@@ -21,7 +67,7 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 - (instancetype)init {
     if (self = [super init]) {
         [[NSNotificationCenter defaultCenter] addObserver:self
-                                                selector:@selector(didReceiveDeviceToken:)
+                                                selector:@selector(didReceiveRegister:)
                                                 name:RNTUmengPushEvent_Register
                                                 object:nil];
         
@@ -50,6 +96,10 @@ RCT_EXPORT_MODULE(RNTUmengPush);
   ];
 }
 
++ (void)init:(NSString *)appKey channel:(NSString *)channel debug:(BOOL)debug {
+    [UMConfigure initWithAppkey:appKey channel:channel];
+    [UMConfigure setLogEnabled:debug];
+}
 
 + (void)didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     RNTUmengPush_LaunchOptions = launchOptions;
@@ -119,11 +169,11 @@ RCT_EXPORT_MODULE(RNTUmengPush);
     
 }
 
-- (void)didReceiveDeviceToken:(NSNotification *)notification {
+- (void)didReceiveRegister:(NSNotification *)notification {
 
     NSDictionary *userInfo = notification.object;
         
-    [self sendEventWithName:@"deviceToken" body:userInfo];
+    [self sendEventWithName:@"register" body:userInfo];
     
 }
 
@@ -131,7 +181,7 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 
     NSDictionary *userInfo = notification.object;
         
-    [self sendEventWithName:@"localNotification" body:userInfo];
+    [self sendEventWithName:@"localNotification" body:RNTUmengPush_GetNotification(userInfo)];
     
 }
 
@@ -139,7 +189,7 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 
     NSDictionary *userInfo = notification.object;
         
-    [self sendEventWithName:@"remoteNotification" body:userInfo];
+    [self sendEventWithName:@"remoteNotification" body:RNTUmengPush_GetNotification(userInfo)];
     
 }
 
@@ -147,10 +197,7 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 
 
 // 获取 device token
-RCT_EXPORT_METHOD(start:(NSString *)appKey
-                  
-                  resolve:(RCTPromiseResolveBlock)resolve
-                  reject:(RCTPromiseRejectBlock)reject) {
+RCT_EXPORT_METHOD(start) {
 
     // Push 组件基本功能配置
     UMessageRegisterEntity * entity = [[UMessageRegisterEntity alloc] init];
@@ -206,11 +253,15 @@ RCT_EXPORT_METHOD(start:(NSString *)appKey
     
     [UMessage registerForRemoteNotificationsWithLaunchOptions:RNTUmengPush_LaunchOptions Entity:entity completionHandler:^(BOOL granted, NSError * _Nullable error) {
         
-        if (granted) {
-            resolve(@{});
+        if (!granted) {
+            [self sendEventWithName:@"register" body:@{
+                @"error": @"permissions is not granted."
+            }];
         }
-        else {
-            reject(@"-1", @"permissions is not granted.", nil);
+        else if (error != nil) {
+            [self sendEventWithName:@"register" body:@{
+                @"error": error.localizedDescription
+            }];
         }
         
     }];
@@ -450,8 +501,7 @@ RCT_EXPORT_METHOD(setAdvanced:(NSDictionary*)options) {
     else if ([type isEqualToString:@"twitter"]) {
         innerType = kUMessageAliasTypeTwitter;
     }
-    
-    
+
     return innerType;
     
 }
@@ -471,7 +521,7 @@ RCT_EXPORT_METHOD(setAdvanced:(NSDictionary*)options) {
             return @"参数非法";
             break;
         case kUMessageErrorDependsErr:
-            return @"条件不足(如:还未获取device_token，添加tag是不成功的)";
+            return @"条件不足(如：还未获取device_token，添加tag是不成功的)";
             break;
         case kUMessageErrorServerSetErr:
             return @"服务器限定操作";

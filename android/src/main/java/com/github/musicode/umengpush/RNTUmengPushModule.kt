@@ -13,25 +13,24 @@ import com.umeng.message.*
 import com.umeng.message.common.inter.ITagManager
 import com.umeng.message.entity.UMessage
 import com.umeng.message.tag.TagManager
-import org.android.agoo.huawei.HuaWeiRegister
 
-class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), ActivityEventListener, LifecycleEventListener {
+class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), ActivityEventListener {
 
     companion object {
-        fun init(app: Application, appKey: String, appSecret: String, channel: String) {
+
+        fun init(app: Application, appKey: String, appSecret: String, channel: String, debug: Boolean) {
+            UMConfigure.setLogEnabled(debug)
             UMConfigure.init(app, appKey, channel, UMConfigure.DEVICE_TYPE_PHONE, appSecret)
-            HuaWeiRegister.register(app)
         }
+
     }
 
-    private var pushAgent: PushAgent
+    private var pushAgent = PushAgent.getInstance(reactContext)
 
     init {
 
         // 日活统计及多维度推送的必调用方法
-        PushAgent.getInstance(reactContext).onAppStart()
-
-        pushAgent = PushAgent.getInstance(reactContext)
+        pushAgent.onAppStart()
 
         // 自定义通知栏打开动作，让 js 去处理
         pushAgent.notificationClickHandler = object : UmengNotificationClickHandler() {
@@ -39,10 +38,26 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
                 Log.d("umeng_push_action", msg.custom)
             }
         }
-        
+
         pushAgent.messageHandler = object : UmengMessageHandler() {
+            override fun dealWithNotificationMessage(p0: Context?, p1: UMessage?) {
+                super.dealWithNotificationMessage(p0, p1)
+                Log.d("umeng_push", "dealWithNotificationMessage: $p1")
+            }
+
+            override fun dealWithCustomMessage(p0: Context?, p1: UMessage?) {
+                super.dealWithCustomMessage(p0, p1)
+                Log.d("umeng_push", "dealWithCustomMessage: $p1")
+            }
+
+            override fun handleMessage(p0: Context?, p1: UMessage?) {
+                super.handleMessage(p0, p1)
+                Log.d("umeng_push", "handleMessage: $p1")
+            }
+
             override fun getNotification(context: Context?, msg: UMessage?): Notification {
 
+                Log.d("umeng_push", "getNotification: $msg")
                 msg?.let {
 
                     val map = Arguments.createMap()
@@ -60,8 +75,9 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
             }
         }
 
+        pushAgent.setNotificaitonOnForeground(true)
+
         reactContext.addActivityEventListener(this)
-        reactContext.addLifecycleEventListener(this)
 
     }
 
@@ -70,9 +86,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     }
 
     @ReactMethod
-    fun start(accessKey: String, promise: Promise) {
-
-
+    fun start() {
 
         pushAgent.register(object : IUmengRegisterCallback {
             override fun onSuccess(deviceToken: String) {
@@ -82,19 +96,19 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
                 sendEvent("register", body)
 
+                Log.d("umeng_push", "register success: $deviceToken")
+
             }
 
-            override fun onFailure(s: String, s1: String) {
+            override fun onFailure(code: String, msg: String) {
 
                 val body = Arguments.createMap()
-                body.putString("error", "$s $1")
+                body.putString("error", msg)
 
                 sendEvent("register", body)
-
+                Log.d("umeng_push", "register errror: $msg")
             }
         })
-
-        promise.resolve(Arguments.createMap())
 
     }
 
@@ -193,7 +207,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     @ReactMethod
     fun addAlias(alias: String, type: String, promise: Promise) {
 
-        pushAgent.addAlias(alias, type) { isSuccess, _ ->
+        pushAgent.addAlias(alias, getAliasType(type)) { isSuccess, _ ->
             if (isSuccess) {
                 val map = Arguments.createMap()
                 promise.resolve(map)
@@ -208,7 +222,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     @ReactMethod
     fun setAlias(alias: String, type: String, promise: Promise) {
 
-        pushAgent.setAlias(alias, type) { isSuccess, _ ->
+        pushAgent.setAlias(alias, getAliasType(type)) { isSuccess, _ ->
             if (isSuccess) {
                 val map = Arguments.createMap()
                 promise.resolve(map)
@@ -223,7 +237,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     @ReactMethod
     fun removeAlias(alias: String, type: String, promise: Promise) {
 
-        pushAgent.deleteAlias(alias, type) { isSuccess, _ ->
+        pushAgent.deleteAlias(alias, getAliasType(type)) { isSuccess, _ ->
             if (isSuccess) {
                 val map = Arguments.createMap()
                 promise.resolve(map)
@@ -305,6 +319,44 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
     }
 
+    private fun getAliasType(type: String): String {
+        return when (type) {
+            "sina" -> {
+               "weibo"
+            }
+            "tencent" -> {
+                "tencent_weibo"
+            }
+            "qq" -> {
+                "qq"
+            }
+            "weixin" -> {
+                "weixin"
+            }
+            "baidu" -> {
+                "baidu"
+            }
+            "renren" -> {
+                "renren"
+            }
+            "kaixin" -> {
+                "kaixin"
+            }
+            "douban" -> {
+                "douban"
+            }
+            "facebook" -> {
+                "facebook"
+            }
+            "twitter" -> {
+                "twitter"
+            }
+            else -> {
+                "custom"
+            }
+        }
+    }
+
     private fun sendEvent(eventName: String, params: WritableMap) {
         reactContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
@@ -319,15 +371,4 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
     }
 
-    override fun onHostResume() {
-
-    }
-
-    override fun onHostPause() {
-
-    }
-
-    override fun onHostDestroy() {
-
-    }
 }
