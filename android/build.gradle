@@ -27,6 +27,7 @@ android {
         targetSdkVersion safeExtGet('targetSdkVersion', 28)
         versionCode 1
         versionName "1.0"
+        consumerProguardFiles 'proguard-rules.pro'
     }
     lintOptions {
         abortOnError false
@@ -61,11 +62,11 @@ dependencies {
     implementation 'com.umeng.umsdk:xiaomi-push:3.7.0'
     implementation 'com.umeng.umsdk:xiaomi-umengaccs:1.1.4'
 
-    //基础组件库依赖(必须)
+    // 基础组件库依赖(必须)
     implementation 'com.umeng.umsdk:common:2.2.2'
     implementation 'com.umeng.umsdk:utdid:1.5.2'
 
-    //友盟push相关依赖(必须)
+    // 友盟push相关依赖(必须)
     implementation 'com.umeng.umsdk:push:6.0.5'
 
     implementation 'com.umeng.umsdk:alicloud-httpdns:1.2.5'

@@ -1,26 +1,122 @@
 package com.github.musicode.umengpush
 
-import android.app.Activity
-import android.app.Application
+import android.app.*
+import android.content.BroadcastReceiver
 import android.content.Context
-import com.facebook.react.bridge.*
 import android.content.Intent
+import android.content.IntentFilter
 import android.util.Log
+import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.umeng.commonsdk.UMConfigure
-import android.app.Notification
 import com.umeng.message.*
-import com.umeng.message.common.inter.ITagManager
 import com.umeng.message.entity.UMessage
 import com.umeng.message.tag.TagManager
+import org.android.agoo.huawei.HuaWeiRegister
+import org.android.agoo.mezu.MeizuRegister
+import org.android.agoo.oppo.OppoRegister
+import org.android.agoo.vivo.VivoRegister
+import org.android.agoo.xiaomi.MiPushRegistar
+import org.json.JSONException
+import org.json.JSONObject
 
 class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), ActivityEventListener {
 
     companion object {
 
+        private const val ACTION_NOTIFICATION_PRESENTED = "RNTUmengPushNotificationPresented"
+        private const val ACTION_NOTIFICATION_CLICKED = "RNTUmengPushNotificationClicked"
+        private const val ACTION_MESSAGE = "RNTUmengPushMessage"
+
+        private var deviceToken = ""
+
         fun init(app: Application, appKey: String, appSecret: String, channel: String, debug: Boolean) {
+
             UMConfigure.setLogEnabled(debug)
             UMConfigure.init(app, appKey, channel, UMConfigure.DEVICE_TYPE_PHONE, appSecret)
+
+            val pushAgent = PushAgent.getInstance(app)
+
+            // app 在前台时是否显示推送
+            // 在 pushAgent.register 方法之前调用
+            pushAgent.setNotificaitonOnForeground(true)
+
+            fun sendIntent(name: String, msg: UMessage) {
+                val intent = Intent(name)
+                intent.putExtra("message", msg.raw.toString())
+                app.sendBroadcast(intent)
+            }
+
+            pushAgent.messageHandler = object : UmengMessageHandler() {
+                override fun dealWithNotificationMessage(context: Context?, msg: UMessage?) {
+                    super.dealWithNotificationMessage(context, msg)
+                    msg?.let {
+                        sendIntent(ACTION_NOTIFICATION_PRESENTED, it)
+                    }
+                }
+
+                override fun dealWithCustomMessage(context: Context?, msg: UMessage?) {
+                    msg?.let {
+                        sendIntent(ACTION_MESSAGE, it)
+                    }
+                }
+            }
+
+            // 自定义通知栏打开动作，让 js 去处理
+            pushAgent.notificationClickHandler = object : UmengNotificationClickHandler() {
+                override fun launchApp(context: Context?, msg: UMessage?) {
+                    msg?.let {
+                        sendIntent(ACTION_NOTIFICATION_CLICKED, it)
+                    }
+                }
+
+                override fun openUrl(context: Context?, msg: UMessage?) {
+                    msg?.let {
+                        sendIntent(ACTION_NOTIFICATION_CLICKED, it)
+                    }
+                }
+
+                override fun openActivity(context: Context?, msg: UMessage?) {
+                    msg?.let {
+                        sendIntent(ACTION_NOTIFICATION_CLICKED, it)
+                    }
+                }
+
+                override fun dealWithCustomAction(context: Context?, msg: UMessage?) {
+                    msg?.let {
+                        sendIntent(ACTION_NOTIFICATION_CLICKED, it)
+                    }
+                }
+            }
+
+            pushAgent.register(object : IUmengRegisterCallback {
+                override fun onSuccess(token: String) {
+                    Log.d("umeng_push", "deviceToken: $token")
+                    deviceToken = token
+                }
+                override fun onFailure(code: String, msg: String) {}
+            })
+
+        }
+
+        fun xiaomi(app: Application, appId: String, appKey: String) {
+            MiPushRegistar.register(app, appId, appKey)
+        }
+
+        fun huawei(app: Application) {
+            HuaWeiRegister.register(app)
+        }
+
+        fun meizu(app: Application, appId: String, appKey: String) {
+            MeizuRegister.register(app, appId, appKey)
+        }
+
+        fun oppo(app: Application, appId: String, appSecret: String) {
+            OppoRegister.register(app, appId, appSecret)
+        }
+
+        fun vivo(app: Application) {
+            VivoRegister.register(app)
         }
 
     }
@@ -32,52 +128,23 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         // 日活统计及多维度推送的必调用方法
         pushAgent.onAppStart()
 
-        // 自定义通知栏打开动作，让 js 去处理
-        pushAgent.notificationClickHandler = object : UmengNotificationClickHandler() {
-            override fun dealWithCustomAction(context: Context?, msg: UMessage) {
-                Log.d("umeng_push_action", msg.custom)
-            }
-        }
-
-        pushAgent.messageHandler = object : UmengMessageHandler() {
-            override fun dealWithNotificationMessage(p0: Context?, p1: UMessage?) {
-                super.dealWithNotificationMessage(p0, p1)
-                Log.d("umeng_push", "dealWithNotificationMessage: $p1")
-            }
-
-            override fun dealWithCustomMessage(p0: Context?, p1: UMessage?) {
-                super.dealWithCustomMessage(p0, p1)
-                Log.d("umeng_push", "dealWithCustomMessage: $p1")
-            }
-
-            override fun handleMessage(p0: Context?, p1: UMessage?) {
-                super.handleMessage(p0, p1)
-                Log.d("umeng_push", "handleMessage: $p1")
-            }
-
-            override fun getNotification(context: Context?, msg: UMessage?): Notification {
-
-                Log.d("umeng_push", "getNotification: $msg")
-                msg?.let {
-
-                    val map = Arguments.createMap()
-
-                    for (entry in it.extra.entries) {
-
-                        val key = entry.key
-                        val value = entry.value
-                    }
-
-                    sendEvent("message", map)
-
-                }
-                return super.getNotification(context, msg)
-            }
-        }
-
-        pushAgent.setNotificaitonOnForeground(true)
-
         reactContext.addActivityEventListener(this)
+
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(ACTION_NOTIFICATION_PRESENTED)
+        intentFilter.addAction(ACTION_NOTIFICATION_CLICKED)
+
+        reactContext.registerReceiver(object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                when (intent.action) {
+                    ACTION_NOTIFICATION_PRESENTED -> onNotificationPresented(intent)
+                    ACTION_NOTIFICATION_CLICKED -> onNotificationClicked(intent)
+                    ACTION_MESSAGE -> onMessage(intent)
+                    else -> {
+                    }
+                }
+            }
+        }, intentFilter)
 
     }
 
@@ -88,37 +155,13 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     @ReactMethod
     fun start() {
 
-        pushAgent.register(object : IUmengRegisterCallback {
-            override fun onSuccess(deviceToken: String) {
+        // 接收启动 app 的推送
+        if (deviceToken.isNotEmpty()) {
+            val map = Arguments.createMap()
+            map.putString("deviceToken", deviceToken)
 
-                val body = Arguments.createMap()
-                body.putString("deviceToken", deviceToken)
-
-                sendEvent("register", body)
-
-                Log.d("umeng_push", "register success: $deviceToken")
-
-            }
-
-            override fun onFailure(code: String, msg: String) {
-
-                val body = Arguments.createMap()
-                body.putString("error", msg)
-
-                sendEvent("register", body)
-                Log.d("umeng_push", "register errror: $msg")
-            }
-        })
-
-    }
-
-    @ReactMethod
-    fun stop() {
-
-        pushAgent.disable(object : IUmengCallback {
-            override fun onSuccess() {}
-            override fun onFailure(s: String, s1: String) {}
-        })
+            sendEvent("register", map)
+        }
 
     }
 
@@ -154,20 +197,17 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         }
 
         pushAgent.tagManager.addTags(
-            object: TagManager.TCallBack {
-                override fun onMessage(isSuccess: Boolean, result: ITagManager.Result?) {
+                TagManager.TCallBack { isSuccess, result ->
                     if (isSuccess) {
                         val map = Arguments.createMap()
                         result?.let {
                             map.putInt("remain", it.remain)
                         }
                         promise.resolve(map)
-                    }
-                    else {
+                    } else {
                         promise.reject("-1", "error")
                     }
-                }
-            },
+                },
             *list.toTypedArray()
         )
 
@@ -185,18 +225,15 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         }
 
         pushAgent.tagManager.deleteTags(
-                object: TagManager.TCallBack {
-                    override fun onMessage(isSuccess: Boolean, result: ITagManager.Result?) {
-                        if (isSuccess) {
-                            val map = Arguments.createMap()
-                            result?.let {
-                                map.putInt("remain", it.remain)
-                            }
-                            promise.resolve(map)
+                TagManager.TCallBack { isSuccess, result ->
+                    if (isSuccess) {
+                        val map = Arguments.createMap()
+                        result?.let {
+                            map.putInt("remain", it.remain)
                         }
-                        else {
-                            promise.reject("-1", "error")
-                        }
+                        promise.resolve(map)
+                    } else {
+                        promise.reject("-1", "error")
                     }
                 },
                 *list.toTypedArray()
@@ -260,14 +297,6 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         // 为了便于开发者更好的集成配置文件，我们提供了对于AndroidManifest配置文件的检查工具，可以自行检查开发者的配置问题
         if (options.hasKey("pushCheck")) {
             pushAgent.isPushCheck = options.getBoolean("pushCheck")
-        }
-
-        // app 在前台时是否显示推送
-        if (options.hasKey("notificaitonOnForeground")) {
-            // 在 pushAgent.register 方法之前调用
-            pushAgent.setNotificaitonOnForeground(
-                options.getBoolean("notificaitonOnForeground")
-            )
         }
 
         // 通知栏可以设置最多显示通知的条数
@@ -357,10 +386,91 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         }
     }
 
+    private fun onNotificationPresented(intent: Intent) {
+
+        val json = intent.getStringExtra("message")
+        val message = UMessage(JSONObject(json))
+
+        val map = Arguments.createMap()
+        map.putMap("body", formatNotification(message))
+        map.putMap("custom_content", formatCustomContent(message))
+        map.putBoolean("presented", true)
+
+        sendEvent("remoteNotification", map)
+
+    }
+
+    private fun onNotificationClicked(intent: Intent) {
+
+        val json = intent.getStringExtra("message")
+        val message = UMessage(JSONObject(json))
+
+        val map = Arguments.createMap()
+        map.putMap("body", formatNotification(message))
+        map.putMap("custom_content", formatCustomContent(message))
+        map.putBoolean("clicked", true)
+
+        sendEvent("remoteNotification", map)
+
+    }
+
+    private fun onMessage(intent: Intent) {
+
+        val json = intent.getStringExtra("message")
+        val message = UMessage(JSONObject(json))
+
+        val map = Arguments.createMap()
+        map.putMap("body", formatCustomMessage(message))
+        map.putMap("custom_content", formatCustomContent(message))
+
+        sendEvent("message", map)
+
+    }
+
     private fun sendEvent(eventName: String, params: WritableMap) {
+        Log.d("umeng_push", "eventName: $eventName, params: $params")
         reactContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                 .emit(eventName, params)
+    }
+
+    private fun formatNotification(msg: UMessage): WritableMap {
+        val body = Arguments.createMap()
+        body.putString("title", msg.title)
+        body.putString("subtitle", "")
+        body.putString("content", msg.text)
+        return body
+    }
+
+    private fun formatCustomContent(msg: UMessage): WritableMap {
+        val customContent = Arguments.createMap()
+        msg.extra?.let {
+            for ((key,value) in it){
+                customContent.putString(key, value)
+            }
+        }
+        return customContent
+    }
+
+    private fun formatCustomMessage(msg: UMessage): WritableMap {
+
+        val customMessage = Arguments.createMap()
+        val json = msg.custom
+
+        if (json.startsWith("{") && json.endsWith("}")) {
+            try {
+                val obj = JSONObject(json)
+                val iterator = obj.keys()
+                while (iterator.hasNext()) {
+                    val key = iterator.next()
+                    customMessage.putString(key, obj.getString(key))
+                }
+            } catch (e: JSONException) {
+                e.printStackTrace()
+            }
+        }
+
+        return customMessage
     }
 
     override fun onNewIntent(intent: Intent?) {
