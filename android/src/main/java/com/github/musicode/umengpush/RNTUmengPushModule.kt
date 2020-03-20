@@ -33,6 +33,10 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
             val pushAgent = PushAgent.getInstance(app)
 
+            if (debug) {
+                pushAgent.isPushCheck = true
+            }
+
             // app 在前台时是否显示推送
             // 在 pushAgent.register 方法之前调用
             pushAgent.setNotificaitonOnForeground(true)
