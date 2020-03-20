@@ -5,14 +5,11 @@
 #import <UMPush/UMessage.h>
 #import <React/RCTConvert.h>
 
-static NSString *RNTUmengPushEvent_Register = @"RNTUmengPushEvent_Register";
-static NSString *RNTUmengPushEvent_LocalNotification = @"RNTUmengPushEvent_LocalNotification";
-static NSString *RNTUmengPushEvent_RemoteNotification = @"RNTUmengPushEvent_RemoteNotification";
-
-static NSDictionary *RNTUmengPush_LaunchOptions = nil;
+RNTUmengPush *umengPushInstance;
+NSDictionary *umengLaunchOptions;
 
 // 获取自定义键值对
-static NSDictionary* RNTUmengPush_GetCustomContent(NSDictionary *userInfo) {
+NSDictionary* getUmengCustomContent(NSDictionary *userInfo) {
 
     NSMutableDictionary *customContent = [[NSMutableDictionary alloc] init];
 
@@ -28,9 +25,9 @@ static NSDictionary* RNTUmengPush_GetCustomContent(NSDictionary *userInfo) {
 };
 
 // 获取推送消息
-static NSMutableDictionary* RNTUmengPush_GetNotification(NSDictionary *userInfo) {
+NSMutableDictionary* getUmengNotification(NSDictionary *userInfo) {
 
-    NSDictionary *customContent = RNTUmengPush_GetCustomContent(userInfo);
+    NSDictionary *customContent = getUmengCustomContent(userInfo);
 
     NSMutableDictionary *resultDict = [[NSMutableDictionary alloc] init];
     resultDict[@"custom_content"] = customContent;
@@ -65,27 +62,14 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 }
 
 - (instancetype)init {
-    if (self = [super init]) {
-        [[NSNotificationCenter defaultCenter] addObserver:self
-                                                selector:@selector(didReceiveRegister:)
-                                                name:RNTUmengPushEvent_Register
-                                                object:nil];
-
-        [[NSNotificationCenter defaultCenter] addObserver:self
-                                                selector:@selector(didReceiveLocalNotification:)
-                                                name:RNTUmengPushEvent_LocalNotification
-                                                object:nil];
-
-        [[NSNotificationCenter defaultCenter] addObserver:self
-                                                selector:@selector(didReceiveRemoteNotification:)
-                                                name:RNTUmengPushEvent_RemoteNotification
-                                                object:nil];
-    }
+    self = [super init];
+    umengPushInstance = self;
     return self;
 }
 
 - (void)dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+    umengPushInstance = nil;
 }
 
 - (NSArray<NSString *> *)supportedEvents {
@@ -102,7 +86,7 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 }
 
 + (void)didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    RNTUmengPush_LaunchOptions = launchOptions;
+    umengLaunchOptions = launchOptions;
 }
 
 + (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
@@ -116,10 +100,12 @@ RCT_EXPORT_MODULE(RNTUmengPush);
                           ntohl(tokenBytes[0]), ntohl(tokenBytes[1]), ntohl(tokenBytes[2]),
                           ntohl(tokenBytes[3]), ntohl(tokenBytes[4]), ntohl(tokenBytes[5]),
                           ntohl(tokenBytes[6]), ntohl(tokenBytes[7])];
-
-    [[NSNotificationCenter defaultCenter] postNotificationName:RNTUmengPushEvent_Register object:@{
-        @"deviceToken": hexToken,
-    }];
+    
+    if (umengPushInstance != nil) {
+        [umengPushInstance sendEventWithName:@"register" body:@{
+            @"deviceToken": hexToken,
+        }];
+    }
 
 }
 
@@ -129,7 +115,9 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 
     if ([[[UIDevice currentDevice] systemVersion]intValue] < 10) {
         [UMessage didReceiveRemoteNotification:userInfo];
-        [[NSNotificationCenter defaultCenter] postNotificationName:RNTUmengPushEvent_RemoteNotification object:userInfo];
+        if (umengPushInstance != nil) {
+            [umengPushInstance sendEventWithName:@"remoteNotification" body:getUmengNotification(userInfo)];
+        }
     }
 
     completionHandler(UIBackgroundFetchResultNewData);
@@ -144,7 +132,9 @@ RCT_EXPORT_MODULE(RNTUmengPush);
         [UMessage setAutoAlert:NO];
         // 应用处于前台时的远程推送
         [UMessage didReceiveRemoteNotification:userInfo];
-        [[NSNotificationCenter defaultCenter] postNotificationName:RNTUmengPushEvent_RemoteNotification object:userInfo];
+        if (umengPushInstance != nil) {
+            [umengPushInstance sendEventWithName:@"remoteNotification" body:getUmengNotification(userInfo)];
+        }
     }
     else {
         // 应用处于前台时的本地推送接受
@@ -161,7 +151,9 @@ RCT_EXPORT_MODULE(RNTUmengPush);
     if ([response.notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]]) {
         // 应用处于后台时的远程推送
         [UMessage didReceiveRemoteNotification:userInfo];
-        [[NSNotificationCenter defaultCenter] postNotificationName:RNTUmengPushEvent_RemoteNotification object:userInfo];
+        if (umengPushInstance != nil) {
+            [umengPushInstance sendEventWithName:@"remoteNotification" body:getUmengNotification(userInfo)];
+        }
     }
     else {
         // 应用处于后台时的本地推送接受
@@ -169,29 +161,6 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 
 }
 
-- (void)didReceiveRegister:(NSNotification *)notification {
-
-    NSDictionary *userInfo = notification.object;
-
-    [self sendEventWithName:@"register" body:userInfo];
-
-}
-
-- (void)didReceiveLocalNotification:(NSNotification *)notification {
-
-    NSDictionary *userInfo = notification.object;
-
-    [self sendEventWithName:@"localNotification" body:RNTUmengPush_GetNotification(userInfo)];
-
-}
-
-- (void)didReceiveRemoteNotification:(NSNotification *)notification {
-
-    NSDictionary *userInfo = notification.object;
-
-    [self sendEventWithName:@"remoteNotification" body:RNTUmengPush_GetNotification(userInfo)];
-
-}
 
 
 
@@ -251,7 +220,7 @@ RCT_EXPORT_METHOD(start) {
 
     }
 
-    [UMessage registerForRemoteNotificationsWithLaunchOptions:RNTUmengPush_LaunchOptions Entity:entity completionHandler:^(BOOL granted, NSError * _Nullable error) {
+    [UMessage registerForRemoteNotificationsWithLaunchOptions:umengLaunchOptions Entity:entity completionHandler:^(BOOL granted, NSError * _Nullable error) {
 
         if (!granted) {
             [self sendEventWithName:@"register" body:@{

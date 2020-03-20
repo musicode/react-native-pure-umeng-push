@@ -15,7 +15,7 @@ export default {
     RNTUmengPush.start()
   },
 
-  addEventListener(type, listener) {
+  addListener(type, listener) {
     return eventEmitter.addListener(type, listener)
   }
 

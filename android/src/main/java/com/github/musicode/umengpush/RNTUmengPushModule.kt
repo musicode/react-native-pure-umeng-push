@@ -1,10 +1,8 @@
 package com.github.musicode.umengpush
 
 import android.app.*
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.util.Log
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
@@ -24,11 +22,9 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
     companion object {
 
-        private const val ACTION_NOTIFICATION_PRESENTED = "RNTUmengPushNotificationPresented"
-        private const val ACTION_NOTIFICATION_CLICKED = "RNTUmengPushNotificationClicked"
-        private const val ACTION_MESSAGE = "RNTUmengPushMessage"
-
         private var deviceToken = ""
+
+        private var umengPushModule: RNTUmengPushModule? = null
 
         fun init(app: Application, appKey: String, appSecret: String, channel: String, debug: Boolean) {
 
@@ -41,23 +37,21 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
             // 在 pushAgent.register 方法之前调用
             pushAgent.setNotificaitonOnForeground(true)
 
-            fun sendIntent(name: String, msg: UMessage) {
-                val intent = Intent(name)
-                intent.putExtra("message", msg.raw.toString())
-                app.sendBroadcast(intent)
-            }
-
             pushAgent.messageHandler = object : UmengMessageHandler() {
                 override fun dealWithNotificationMessage(context: Context?, msg: UMessage?) {
                     super.dealWithNotificationMessage(context, msg)
-                    msg?.let {
-                        sendIntent(ACTION_NOTIFICATION_PRESENTED, it)
+                    umengPushModule?.let {
+                        if (msg != null) {
+                            it.onNotificationPresented(msg)
+                        }
                     }
                 }
 
                 override fun dealWithCustomMessage(context: Context?, msg: UMessage?) {
-                    msg?.let {
-                        sendIntent(ACTION_MESSAGE, it)
+                    umengPushModule?.let {
+                        if (msg != null) {
+                            it.onMessage(msg)
+                        }
                     }
                 }
             }
@@ -65,26 +59,34 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
             // 自定义通知栏打开动作，让 js 去处理
             pushAgent.notificationClickHandler = object : UmengNotificationClickHandler() {
                 override fun launchApp(context: Context?, msg: UMessage?) {
-                    msg?.let {
-                        sendIntent(ACTION_NOTIFICATION_CLICKED, it)
+                    umengPushModule?.let {
+                        if (msg != null) {
+                            it.onNotificationClicked(msg)
+                        }
                     }
                 }
 
                 override fun openUrl(context: Context?, msg: UMessage?) {
-                    msg?.let {
-                        sendIntent(ACTION_NOTIFICATION_CLICKED, it)
+                    umengPushModule?.let {
+                        if (msg != null) {
+                            it.onNotificationClicked(msg)
+                        }
                     }
                 }
 
                 override fun openActivity(context: Context?, msg: UMessage?) {
-                    msg?.let {
-                        sendIntent(ACTION_NOTIFICATION_CLICKED, it)
+                    umengPushModule?.let {
+                        if (msg != null) {
+                            it.onNotificationClicked(msg)
+                        }
                     }
                 }
 
                 override fun dealWithCustomAction(context: Context?, msg: UMessage?) {
-                    msg?.let {
-                        sendIntent(ACTION_NOTIFICATION_CLICKED, it)
+                    umengPushModule?.let {
+                        if (msg != null) {
+                            it.onNotificationClicked(msg)
+                        }
                     }
                 }
             }
@@ -124,32 +126,23 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     private var pushAgent = PushAgent.getInstance(reactContext)
 
     init {
-
         // 日活统计及多维度推送的必调用方法
         pushAgent.onAppStart()
-
         reactContext.addActivityEventListener(this)
-
-        val intentFilter = IntentFilter()
-        intentFilter.addAction(ACTION_NOTIFICATION_PRESENTED)
-        intentFilter.addAction(ACTION_NOTIFICATION_CLICKED)
-
-        reactContext.registerReceiver(object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                when (intent.action) {
-                    ACTION_NOTIFICATION_PRESENTED -> onNotificationPresented(intent)
-                    ACTION_NOTIFICATION_CLICKED -> onNotificationClicked(intent)
-                    ACTION_MESSAGE -> onMessage(intent)
-                    else -> {
-                    }
-                }
-            }
-        }, intentFilter)
-
     }
 
     override fun getName(): String {
         return "RNTUmengPush"
+    }
+
+    override fun onCatalystInstanceDestroy() {
+        super.onCatalystInstanceDestroy()
+        umengPushModule = null
+    }
+
+    override fun initialize() {
+        super.initialize()
+        umengPushModule = this
     }
 
     @ReactMethod
@@ -162,6 +155,26 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
             sendEvent("register", map)
         }
+
+    }
+
+    @ReactMethod
+    fun enable() {
+
+        pushAgent.enable(object : IUmengCallback {
+            override fun onSuccess() {}
+            override fun onFailure(s: String, s1: String) {}
+        })
+
+    }
+
+    @ReactMethod
+    fun disable() {
+
+        pushAgent.disable(object : IUmengCallback {
+            override fun onSuccess() {}
+            override fun onFailure(s: String, s1: String) {}
+        })
 
     }
 
@@ -386,10 +399,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         }
     }
 
-    private fun onNotificationPresented(intent: Intent) {
-
-        val json = intent.getStringExtra("message")
-        val message = UMessage(JSONObject(json))
+    private fun onNotificationPresented(message: UMessage) {
 
         val map = Arguments.createMap()
         map.putMap("body", formatNotification(message))
@@ -400,10 +410,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
     }
 
-    private fun onNotificationClicked(intent: Intent) {
-
-        val json = intent.getStringExtra("message")
-        val message = UMessage(JSONObject(json))
+    private fun onNotificationClicked(message: UMessage) {
 
         val map = Arguments.createMap()
         map.putMap("body", formatNotification(message))
@@ -414,10 +421,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
     }
 
-    private fun onMessage(intent: Intent) {
-
-        val json = intent.getStringExtra("message")
-        val message = UMessage(JSONObject(json))
+    private fun onMessage(message: UMessage) {
 
         val map = Arguments.createMap()
         map.putMap("body", formatCustomMessage(message))
