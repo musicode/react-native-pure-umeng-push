@@ -3,6 +3,7 @@ package com.github.musicode.umengpush
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.os.Looper
 import android.util.Log
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
@@ -25,6 +26,10 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         private var deviceToken = ""
 
         private var umengPushModule: RNTUmengPushModule? = null
+
+        private fun isMainThread(): Boolean {
+            return Looper.getMainLooper() == Looper.myLooper()
+        }
 
         fun init(app: Application, appKey: String, appSecret: String, channel: String, debug: Boolean) {
 
@@ -106,23 +111,33 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         }
 
         fun xiaomi(app: Application, appId: String, appKey: String) {
-            MiPushRegistar.register(app, appId, appKey)
+            if (isMainThread()) {
+                MiPushRegistar.register(app, appId, appKey)
+            }
         }
 
         fun huawei(app: Application) {
-            HuaWeiRegister.register(app)
+            if (isMainThread()) {
+                HuaWeiRegister.register(app)
+            }
         }
 
         fun meizu(app: Application, appId: String, appKey: String) {
-            MeizuRegister.register(app, appId, appKey)
+            if (isMainThread()) {
+                MeizuRegister.register(app, appId, appKey)
+            }
         }
 
         fun oppo(app: Application, appId: String, appSecret: String) {
-            OppoRegister.register(app, appId, appSecret)
+            if (isMainThread()) {
+                OppoRegister.register(app, appId, appSecret)
+            }
         }
 
         fun vivo(app: Application) {
-            VivoRegister.register(app)
+            if (isMainThread()) {
+                VivoRegister.register(app)
+            }
         }
 
     }

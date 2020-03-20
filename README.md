@@ -47,25 +47,28 @@ allprojects {
 
 ### 配置华为
 
-需要在 `Manifest.xml` 中配置华为的 `appId`，如下：
+在 `Manifest.xml` 中配置华为的 `appId`，如下：
 
 ```xml
 <meta-data
     android:name="com.huawei.hms.client.appid"
-    android:value="appid=你的华为应用的 app id" />
+    android:value="你的华为应用的 app id"
+/>
 ```
 
 ### 配置 vivo
 
-需要在 `Manifest.xml` 中配置 vivo 的 `appId` 和 `appKey`，如下：
+在 `Manifest.xml` 中配置 vivo 的 `appId` 和 `appKey`，如下：
 
 ```xml
 <meta-data
- android:name="com.vivo.push.app_id"
- android:value="你的 vivo 应用的 app id" />
+    android:name="com.vivo.push.app_id"
+    android:value="你的 vivo 应用的 app id"
+/>
 <meta-data
- android:name="com.vivo.push.api_key"
- android:value="你的 vivo 应用的 app key" />
+    android:name="com.vivo.push.api_key"
+    android:value="你的 vivo 应用的 app key"
+/>
 ```
 
 ### 配置魅族
