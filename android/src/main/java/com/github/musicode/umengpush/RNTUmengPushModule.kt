@@ -274,9 +274,9 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     }
 
     @ReactMethod
-    fun addAlias(alias: String, type: String, promise: Promise) {
+    fun setAlias(alias: String, type: String, promise: Promise) {
 
-        pushAgent.addAlias(alias, getAliasType(type)) { isSuccess, _ ->
+        pushAgent.setAlias(alias, getAliasType(type)) { isSuccess, _ ->
             if (isSuccess) {
                 val map = Arguments.createMap()
                 promise.resolve(map)
@@ -289,9 +289,9 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     }
 
     @ReactMethod
-    fun setAlias(alias: String, type: String, promise: Promise) {
+    fun addAlias(alias: String, type: String, promise: Promise) {
 
-        pushAgent.setAlias(alias, getAliasType(type)) { isSuccess, _ ->
+        pushAgent.addAlias(alias, getAliasType(type)) { isSuccess, _ ->
             if (isSuccess) {
                 val map = Arguments.createMap()
                 promise.resolve(map)
@@ -422,7 +422,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
         val map = Arguments.createMap()
         map.putMap("body", formatNotification(message))
-        map.putMap("custom_content", formatCustomContent(message))
+        map.putMap("custom", formatCustom(message))
         map.putBoolean("presented", true)
 
         sendEvent("remoteNotification", map)
@@ -433,7 +433,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
         val map = Arguments.createMap()
         map.putMap("body", formatNotification(message))
-        map.putMap("custom_content", formatCustomContent(message))
+        map.putMap("custom", formatCustom(message))
         map.putBoolean("clicked", true)
 
         sendEvent("remoteNotification", map)
@@ -444,7 +444,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
         val map = Arguments.createMap()
         map.putMap("body", formatCustomMessage(message))
-        map.putMap("custom_content", formatCustomContent(message))
+        map.putMap("custom", formatCustom(message))
 
         sendEvent("message", map)
 
@@ -465,14 +465,14 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         return body
     }
 
-    private fun formatCustomContent(msg: UMessage): WritableMap {
-        val customContent = Arguments.createMap()
+    private fun formatCustom(msg: UMessage): WritableMap {
+        val custom = Arguments.createMap()
         msg.extra?.let {
             for ((key,value) in it){
-                customContent.putString(key, value)
+                custom.putString(key, value)
             }
         }
-        return customContent
+        return custom
     }
 
     private fun formatCustomMessage(msg: UMessage): WritableMap {

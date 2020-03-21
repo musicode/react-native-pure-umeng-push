@@ -9,28 +9,28 @@ RNTUmengPush *umengPushInstance;
 NSDictionary *umengLaunchOptions;
 
 // 获取自定义键值对
-NSDictionary* getUmengCustomContent(NSDictionary *userInfo) {
+NSDictionary* getUmengCustom(NSDictionary *userInfo) {
 
-    NSMutableDictionary *customContent = [[NSMutableDictionary alloc] init];
+    NSMutableDictionary *custom = [[NSMutableDictionary alloc] init];
 
     for (NSString *key in userInfo) {
         // d p aps 这三个是所有通知都带的字段
         if (![key isEqual: @"d"] && ![key isEqual: @"p"] && ![key isEqual: @"aps"]) {
-            customContent[key] = userInfo[key];
+            custom[key] = userInfo[key];
         }
     }
 
-    return customContent;
+    return custom;
 
 };
 
 // 获取推送消息
 NSMutableDictionary* getUmengNotification(NSDictionary *userInfo) {
 
-    NSDictionary *customContent = getUmengCustomContent(userInfo);
+    NSDictionary *custom = getUmengCustom(userInfo);
 
     NSMutableDictionary *resultDict = [[NSMutableDictionary alloc] init];
-    resultDict[@"custom_content"] = customContent;
+    resultDict[@"custom"] = custom;
 
     NSDictionary *alertDict = userInfo[@"aps"][@"alert"];
     if (alertDict) {
@@ -100,7 +100,7 @@ RCT_EXPORT_MODULE(RNTUmengPush);
                           ntohl(tokenBytes[0]), ntohl(tokenBytes[1]), ntohl(tokenBytes[2]),
                           ntohl(tokenBytes[3]), ntohl(tokenBytes[4]), ntohl(tokenBytes[5]),
                           ntohl(tokenBytes[6]), ntohl(tokenBytes[7])];
-    
+
     if (umengPushInstance != nil) {
         [umengPushInstance sendEventWithName:@"register" body:@{
             @"deviceToken": hexToken,
@@ -316,15 +316,15 @@ RCT_EXPORT_METHOD(removeTags:(NSArray *)tags
 
 }
 
-// 绑定别名
-RCT_EXPORT_METHOD(addAlias:(NSString *)alias
+// 重置别名
+RCT_EXPORT_METHOD(setAlias:(NSString *)alias
                   type:(NSString *)type
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
 
     NSString *innerType = [self getAliasType:type];
 
-    [UMessage addAlias:alias type:innerType response:^(id  _Nonnull responseObject, NSError * _Nonnull error) {
+    [UMessage setAlias:alias type:innerType response:^(id  _Nonnull responseObject, NSError * _Nonnull error) {
 
         if (error) {
             NSString *msg = [self getErrorMessage:error];
@@ -345,15 +345,15 @@ RCT_EXPORT_METHOD(addAlias:(NSString *)alias
 
 }
 
-// 重置别名
-RCT_EXPORT_METHOD(setAlias:(NSString *)alias
+// 绑定别名
+RCT_EXPORT_METHOD(addAlias:(NSString *)alias
                   type:(NSString *)type
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
 
     NSString *innerType = [self getAliasType:type];
 
-    [UMessage setAlias:alias type:innerType response:^(id  _Nonnull responseObject, NSError * _Nonnull error) {
+    [UMessage addAlias:alias type:innerType response:^(id  _Nonnull responseObject, NSError * _Nonnull error) {
 
         if (error) {
             NSString *msg = [self getErrorMessage:error];
