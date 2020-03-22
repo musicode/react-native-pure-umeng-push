@@ -1,3 +1,5 @@
+-keep class com.umeng.** {*;}
+
 # oppo
 -keep public class * extends android.app.Service
 

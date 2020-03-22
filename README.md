@@ -47,7 +47,7 @@ allprojects {
 
 ### 配置华为
 
-在 `Manifest.xml` 中配置华为的 `appId`，如下：
+在 `AndroidManifest.xml` 中 `application` 标签下配置华为的 `appId`，如下：
 
 ```xml
 <meta-data
@@ -58,7 +58,7 @@ allprojects {
 
 ### 配置 vivo
 
-在 `Manifest.xml` 中配置 vivo 的 `appId` 和 `appKey`，如下：
+在 `AndroidManifest.xml` 中 `application` 标签下配置 vivo 的 `appId` 和 `appKey`，如下：
 
 ```xml
 <meta-data
@@ -73,35 +73,7 @@ allprojects {
 
 ### 配置魅族
 
-自定义 Recevier 组件受魅族接入方式限制，必须在包名目录实现一个自定义 Recevier，继承自 MeizuPushReceiver，例如：
-
-```java
-public class MeizuTestReceiver extends MeizuPushReceiver {
-}
-```
-
-然后在 `AndroidManifest.xml` 中配置该 Recevier，例如：
-
-```xml
-<!--魅族push应用定义消息receiver声明 -->
-<receiver android:name="${applicationId}.MeizuTestReceiver">
-    <intent-filter>
-        <!-- 接收push消息 -->
-        <action android:name="com.meizu.flyme.push.intent.MESSAGE" />
-        <!-- 接收register消息 -->
-        <action android:name="com.meizu.flyme.push.intent.REGISTER.FEEDBACK" />
-        <!-- 接收unregister消息-->
-        <action android:name="com.meizu.flyme.push.intent.UNREGISTER.FEEDBACK" />
-        <!-- 兼容低版本Flyme3推送服务配置 -->
-        <action android:name="com.meizu.c2dm.intent.REGISTRATION" />
-        <action android:name="com.meizu.c2dm.intent.RECEIVE" />
-
-        <category android:name="${applicationId}"></category>
-    </intent-filter>
-</receiver>
-```
-
-最后配置系统通知图标
+配置系统通知图标
 
 请在 `drawable` 目录下添加一个图标，命名为 `stat_sys_third_app_notify.png`，建议尺寸 `64px * 64px`，图标四周留有透明。若不添加此图标，可能在部分魅族手机上无法弹出通知。
 

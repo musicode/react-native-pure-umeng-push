@@ -22,7 +22,7 @@ NSDictionary* getUmengCustom(NSDictionary *userInfo) {
 
     return custom;
 
-};
+}
 
 // 获取推送消息
 NSMutableDictionary* getUmengNotification(NSDictionary *userInfo) {
@@ -34,24 +34,24 @@ NSMutableDictionary* getUmengNotification(NSDictionary *userInfo) {
 
     NSDictionary *alertDict = userInfo[@"aps"][@"alert"];
     if (alertDict) {
-        resultDict[@"body"] = @{
-                          @"title": alertDict[@"title"] ?: @"",
-                          @"subtitle": alertDict[@"subtitle"] ?: @"",
-                          @"content": alertDict[@"body"] ?: @""
+        resultDict[@"notification"] = @{
+                              @"title": alertDict[@"title"] ?: @"",
+                              @"subTitle": alertDict[@"subtitle"] ?: @"",
+                              @"content": alertDict[@"body"] ?: @""
                           };
     }
     else {
         NSString *alertStr = userInfo[@"aps"][@"alert"];
-        resultDict[@"body"] = @{
-                          @"title": alertStr ?: @"",
-                          @"subtitle": @"",
-                          @"content": @""
+        resultDict[@"notification"] = @{
+                              @"title": alertStr ?: @"",
+                              @"subTitle": @"",
+                              @"content": @""
                           };
     }
 
     return resultDict;
 
-};
+}
 
 @implementation RNTUmengPush
 
@@ -80,13 +80,13 @@ RCT_EXPORT_MODULE(RNTUmengPush);
   ];
 }
 
-+ (void)init:(NSString *)appKey channel:(NSString *)channel debug:(BOOL)debug {
++ (void)init:(NSDictionary *)launchOptions appKey:(NSString *)appKey channel:(NSString *)channel debug:(BOOL)debug {
+    
+    umengLaunchOptions = launchOptions;
+    
     [UMConfigure initWithAppkey:appKey channel:channel];
     [UMConfigure setLogEnabled:debug];
-}
-
-+ (void)didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    umengLaunchOptions = launchOptions;
+    
 }
 
 + (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
@@ -101,17 +101,25 @@ RCT_EXPORT_MODULE(RNTUmengPush);
                           ntohl(tokenBytes[3]), ntohl(tokenBytes[4]), ntohl(tokenBytes[5]),
                           ntohl(tokenBytes[6]), ntohl(tokenBytes[7])];
 
+    NSMutableDictionary *body;
+    
+    if ([umengLaunchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey]) {
+        NSDictionary *userInfo = [umengLaunchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
+        body = getUmengNotification(userInfo);
+    }
+    else {
+        body = [[NSMutableDictionary alloc] init];
+    }
+    
+    body[@"deviceToken"] = hexToken;
+    
     if (umengPushInstance != nil) {
-        [umengPushInstance sendEventWithName:@"register" body:@{
-            @"deviceToken": hexToken,
-        }];
+        [umengPushInstance sendEventWithName:@"register" body:body];
     }
 
 }
 
 + (void)didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
-
-    [UMessage setAutoAlert:NO];
 
     if ([[[UIDevice currentDevice] systemVersion]intValue] < 10) {
         [UMessage didReceiveRemoteNotification:userInfo];
@@ -126,14 +134,15 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 
 + (void)willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler API_AVAILABLE(ios(10.0)) {
 
-    NSDictionary * userInfo = notification.request.content.userInfo;
+    NSDictionary *userInfo = notification.request.content.userInfo;
 
     if ([notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]]) {
-        [UMessage setAutoAlert:NO];
         // 应用处于前台时的远程推送
         [UMessage didReceiveRemoteNotification:userInfo];
         if (umengPushInstance != nil) {
-            [umengPushInstance sendEventWithName:@"remoteNotification" body:getUmengNotification(userInfo)];
+            NSMutableDictionary *body = getUmengNotification(userInfo);
+            body[@"presented"] = @YES;
+            [umengPushInstance sendEventWithName:@"remoteNotification" body:body];
         }
     }
     else {
@@ -152,7 +161,9 @@ RCT_EXPORT_MODULE(RNTUmengPush);
         // 应用处于后台时的远程推送
         [UMessage didReceiveRemoteNotification:userInfo];
         if (umengPushInstance != nil) {
-            [umengPushInstance sendEventWithName:@"remoteNotification" body:getUmengNotification(userInfo)];
+            NSMutableDictionary *body = getUmengNotification(userInfo);
+            body[@"clicked"] = @YES;
+            [umengPushInstance sendEventWithName:@"remoteNotification" body:body];
         }
     }
     else {
@@ -220,21 +231,25 @@ RCT_EXPORT_METHOD(start) {
 
     }
 
-    [UMessage registerForRemoteNotificationsWithLaunchOptions:umengLaunchOptions Entity:entity completionHandler:^(BOOL granted, NSError * _Nullable error) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+       
+        [UMessage registerForRemoteNotificationsWithLaunchOptions:umengLaunchOptions Entity:entity completionHandler:^(BOOL granted, NSError * _Nullable error) {
 
-        if (!granted) {
-            [self sendEventWithName:@"register" body:@{
-                @"error": @"permissions is not granted."
-            }];
-        }
-        else if (error != nil) {
-            [self sendEventWithName:@"register" body:@{
-                @"error": error.localizedDescription
-            }];
-        }
+            if (!granted) {
+                [self sendEventWithName:@"register" body:@{
+                    @"error": @"permissions is not granted."
+                }];
+            }
+            else if (error != nil) {
+                [self sendEventWithName:@"register" body:@{
+                    @"error": error.localizedDescription
+                }];
+            }
 
-    }];
-
+        }];
+        
+    });
+    
 }
 
 // 获取所有标签
@@ -408,64 +423,62 @@ RCT_EXPORT_METHOD(setAdvanced:(NSDictionary*)options) {
 
     // 设置是否允许 SDK 自动清空角标，默认自动角标清零
     if ([options objectForKey:@"badgeClear"]) {
-        BOOL value = [[options objectForKey:@"badgeClear"] boolValue];
-        [UMessage setBadgeClear:value];
+        [UMessage setBadgeClear:[RCTConvert BOOL:options[@"badgeClear"]]];
     }
 
     // 设置是否允许 SDK 当应用在前台运行收到 Push 时弹出 Alert 框
     if ([options objectForKey:@"autoAlert"]) {
-        BOOL value = [[options objectForKey:@"autoAlert"] boolValue];
-        [UMessage setAutoAlert:value];
+        [UMessage setAutoAlert:[RCTConvert BOOL:options[@"autoAlert"]]];
     }
 
 }
 
 - (NSString *)getAliasType:(NSString *)type {
 
-    NSString *innerType = @"custom";
+    NSString *aliasType = @"custom";
 
     // 新浪微博
     if ([type isEqualToString:@"sina"]) {
-        innerType = kUMessageAliasTypeSina;
+        aliasType = kUMessageAliasTypeSina;
     }
     // 腾讯微博
     else if ([type isEqualToString:@"tencent"]) {
-        innerType = kUMessageAliasTypeTencent;
+        aliasType = kUMessageAliasTypeTencent;
     }
     // QQ
     else if ([type isEqualToString:@"qq"]) {
-        innerType = kUMessageAliasTypeQQ;
+        aliasType = kUMessageAliasTypeQQ;
     }
     // 微信
     else if ([type isEqualToString:@"weixin"]) {
-        innerType = kUMessageAliasTypeWeiXin;
+        aliasType = kUMessageAliasTypeWeiXin;
     }
     // 百度
     else if ([type isEqualToString:@"baidu"]) {
-        innerType = kUMessageAliasTypeBaidu;
+        aliasType = kUMessageAliasTypeBaidu;
     }
     // 人人网
     else if ([type isEqualToString:@"renren"]) {
-        innerType = kUMessageAliasTypeRenRen;
+        aliasType = kUMessageAliasTypeRenRen;
     }
     // 开心网
     else if ([type isEqualToString:@"kaixin"]) {
-        innerType = kUMessageAliasTypeKaixin;
+        aliasType = kUMessageAliasTypeKaixin;
     }
     // 豆瓣
     else if ([type isEqualToString:@"douban"]) {
-        innerType = kUMessageAliasTypeDouban;
+        aliasType = kUMessageAliasTypeDouban;
     }
     // facebook
     else if ([type isEqualToString:@"facebook"]) {
-        innerType = kUMessageAliasTypeFacebook;
+        aliasType = kUMessageAliasTypeFacebook;
     }
     // twitter
     else if ([type isEqualToString:@"twitter"]) {
-        innerType = kUMessageAliasTypeTwitter;
+        aliasType = kUMessageAliasTypeTwitter;
     }
 
-    return innerType;
+    return aliasType;
 
 }
 
