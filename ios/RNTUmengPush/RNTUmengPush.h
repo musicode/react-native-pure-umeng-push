@@ -4,7 +4,9 @@
 
 @interface RNTUmengPush : RCTEventEmitter <RCTBridgeModule, UNUserNotificationCenterDelegate>
 
-+ (void)init:(NSString *)appKey launchOptions:(NSDictionary *)launchOptions debug:(BOOL)debug;
++ (void)init:(NSString *)appKey debug:(BOOL)debug;
+
++ (void)push:(NSDictionary *)launchOptions;
 
 + (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken;
          

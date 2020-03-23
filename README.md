@@ -30,7 +30,11 @@ react-native link react-native-pure-umeng-push
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
   ...
-  [RNTUmengPush init:@"appKey" launchOptions:launchOptions debug:false];
+  // 初始化友盟基础库
+  [RNTUmengPush init:@"appKey" debug:false];
+  // 初始化友盟推送
+  [RNTUmengPush push:launchOptions];
+
   return YES;
 }
 

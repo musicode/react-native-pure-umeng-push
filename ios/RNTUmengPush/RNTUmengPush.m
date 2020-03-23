@@ -83,12 +83,16 @@ RCT_EXPORT_MODULE(RNTUmengPush);
   ];
 }
 
-+ (void)init:(NSString *)appKey launchOptions:(NSDictionary *)launchOptions debug:(BOOL)debug {
-    
-    umengLaunchOptions = launchOptions;
++ (void)init:(NSString *)appKey debug:(BOOL)debug {
     
     [UMConfigure initWithAppkey:appKey channel:@"App Store"];
     [UMConfigure setLogEnabled:debug];
+    
+}
+
++ (void)push:(NSDictionary *)launchOptions {
+    
+    umengLaunchOptions = launchOptions;
     
 }
 
