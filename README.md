@@ -63,9 +63,9 @@ allprojects {
 buildTypes {
     debug {
         manifestPlaceholders = [
-            UMENG_PUSH_APP_KEY: '',
-            UMENG_PUSH_APP_SECRET: '',
-            UMENG_PUSH_CHANNEL: '',
+            UMENG_APP_KEY: '',
+            UMENG_APP_SECRET: '',
+            UMENG_CHANNEL: '',
             HUAWEI_PUSH_APP_ID: '',
             XIAOMI_PUSH_APP_ID: '',
             XIAOMI_PUSH_APP_KEY: '',
@@ -79,9 +79,9 @@ buildTypes {
     }
     release {
         manifestPlaceholders = [
-            UMENG_PUSH_APP_KEY: '',
-            UMENG_PUSH_APP_SECRET: '',
-            UMENG_PUSH_CHANNEL: '',
+            UMENG_APP_KEY: '',
+            UMENG_APP_SECRET: '',
+            UMENG_CHANNEL: '',
             HUAWEI_PUSH_APP_ID: '',
             XIAOMI_PUSH_APP_ID: '',
             XIAOMI_PUSH_APP_KEY: '',
@@ -100,17 +100,22 @@ buildTypes {
 
 ```kotlin
 override fun onCreate() {
+    val metaData = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA).metaData
+
     // 点击推送跳转到的 activity
     // 通常 react native 只有一个 main activity
     UmengPushActivity.mainActivityClass = MainActivity::class.java
-    // 初始化
-    RNTUmengPushModule.init(this, false)
-    // 如果需要厂商通道，按需调用
-    RNTUmengPushModule.huawei(this)
-    RNTUmengPushModule.xiaomi(this)
-    RNTUmengPushModule.oppo(this)
-    RNTUmengPushModule.vivo(this)
-    RNTUmengPushModule.meizu(this)
+
+    // 初始化友盟基础库
+    RNTUmengPushModule.init(this, metaData, false)
+    // 初始化友盟推送
+    RNTUmengPushModule.push(this, metaData)
+    // 初始化厂商通道，按需调用
+    RNTUmengPushModule.huawei(this, metaData)
+    RNTUmengPushModule.xiaomi(this, metaData)
+    RNTUmengPushModule.oppo(this, metaData)
+    RNTUmengPushModule.vivo(this, metaData)
+    RNTUmengPushModule.meizu(this, metaData)
 }
 ```
 
