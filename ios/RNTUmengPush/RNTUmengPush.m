@@ -62,13 +62,16 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 }
 
 - (instancetype)init {
-    self = [super init];
-    umengPushInstance = self;
+    if (self = [super init]) {
+        if (umengPushInstance) {
+            umengPushInstance = nil;
+        }
+        umengPushInstance = self;
+    }
     return self;
 }
 
 - (void)dealloc {
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
     umengPushInstance = nil;
 }
 
@@ -80,11 +83,11 @@ RCT_EXPORT_MODULE(RNTUmengPush);
   ];
 }
 
-+ (void)init:(NSDictionary *)launchOptions appKey:(NSString *)appKey channel:(NSString *)channel debug:(BOOL)debug {
++ (void)init:(NSString *)appKey launchOptions:(NSDictionary *)launchOptions debug:(BOOL)debug {
     
     umengLaunchOptions = launchOptions;
     
-    [UMConfigure initWithAppkey:appKey channel:channel];
+    [UMConfigure initWithAppkey:appKey channel:@"App Store"];
     [UMConfigure setLogEnabled:debug];
     
 }
@@ -129,10 +132,10 @@ RCT_EXPORT_MODULE(RNTUmengPush);
     }
 
     completionHandler(UIBackgroundFetchResultNewData);
-
+    
 }
 
-+ (void)willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler API_AVAILABLE(ios(10.0)) {
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler API_AVAILABLE(ios(10.0)) {
 
     NSDictionary *userInfo = notification.request.content.userInfo;
 
@@ -150,10 +153,10 @@ RCT_EXPORT_MODULE(RNTUmengPush);
     }
 
     completionHandler(UNNotificationPresentationOptionSound|UNNotificationPresentationOptionBadge|UNNotificationPresentationOptionAlert);
-
+    
 }
 
-+ (void)didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler API_AVAILABLE(ios(10.0)) {
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void(^)(void))completionHandler API_AVAILABLE(ios(10.0)) {
 
     NSDictionary *userInfo = response.notification.request.content.userInfo;
 
@@ -169,66 +172,24 @@ RCT_EXPORT_MODULE(RNTUmengPush);
     else {
         // 应用处于后台时的本地推送接受
     }
-
+    
 }
-
 
 
 
 
 // 获取 device token
 RCT_EXPORT_METHOD(start) {
-
+    
     // Push 组件基本功能配置
-    UMessageRegisterEntity * entity = [[UMessageRegisterEntity alloc] init];
+    UMessageRegisterEntity *entity = [[UMessageRegisterEntity alloc] init];
 
     // type 是对推送的几个参数的选择，可以选择一个或者多个
     // 默认是三个全部打开，即：声音，弹窗，角标
     entity.types = UMessageAuthorizationOptionBadge|UMessageAuthorizationOptionSound|UMessageAuthorizationOptionAlert;
-
-    // 如果你期望使用交互式(只有iOS 8.0及以上有)的通知，请参考下面注释部分的初始化代码
-    if (([[[UIDevice currentDevice] systemVersion]intValue] >= 8) && ([[[UIDevice currentDevice] systemVersion]intValue] < 10)) {
-
-        UIMutableUserNotificationAction *action1 = [[UIMutableUserNotificationAction alloc] init];
-        action1.identifier = @"action1_identifier";
-        action1.title = @"打开应用";
-        // 当点击的时候启动程序
-        action1.activationMode = UIUserNotificationActivationModeForeground;
-
-        UIMutableUserNotificationAction *action2 = [[UIMutableUserNotificationAction alloc] init];
-        action2.identifier = @"action2_identifier";
-        action2.title = @"忽略";
-        // 当点击的时候不启动程序，在后台处理
-        action2.activationMode = UIUserNotificationActivationModeBackground;
-        // 需要解锁才能处理，如果action.activationMode = UIUserNotificationActivationModeForeground; 则这个属性被忽略
-        action2.authenticationRequired = YES;
-        // 是否显示为消极按钮
-        action2.destructive = YES;
-
-        UIMutableUserNotificationCategory *category1 = [[UIMutableUserNotificationCategory alloc] init];
-        // 这组动作的唯一标示
-        category1.identifier = @"category1";
-        [category1 setActions:@[action1, action2] forContext:(UIUserNotificationActionContextDefault)];
-
-        NSSet *categories = [NSSet setWithObjects:category1, nil];
-        entity.categories = categories;
-
-    }
-    // 如果要在 iOS10 显示交互式的通知，必须注意实现以下代码
-    else if (@available(iOS 10.0, *)) {
-
-        UNNotificationAction *action1 = [UNNotificationAction actionWithIdentifier:@"action1_identifier" title:@"打开应用" options:UNNotificationActionOptionForeground];
-
-        UNNotificationAction *action2 = [UNNotificationAction actionWithIdentifier:@"action2_identifier" title:@"忽略" options:UNNotificationActionOptionForeground];
-
-        // UNNotificationCategoryOptionNone
-        // UNNotificationCategoryOptionCustomDismissAction  清除通知被触发会走通知的代理方法
-        // UNNotificationCategoryOptionAllowInCarPlay       适用于行车模式
-        UNNotificationCategory *category1 = [UNNotificationCategory categoryWithIdentifier:@"category1" actions:@[action1, action2]   intentIdentifiers:@[] options:UNNotificationCategoryOptionCustomDismissAction];
-
-        NSSet *categories = [NSSet setWithObjects:category1, nil];
-        entity.categories=categories;
-
+    
+    if (@available(iOS 10.0, *)) {
+        [UNUserNotificationCenter currentNotificationCenter].delegate = self;
     }
 
     dispatch_async(dispatch_get_main_queue(), ^{
