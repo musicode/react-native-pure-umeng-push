@@ -16,6 +16,59 @@
 
     <application>
 
+        <meta-data
+            android:name="UMENG_PUSH_APP_KEY"
+            android:value="${UMENG_PUSH_APP_KEY}"
+        />
+        <meta-data
+            android:name="UMENG_PUSH_APP_SECRET"
+            android:value="${UMENG_PUSH_APP_SECRET}"
+        />
+        <meta-data
+            android:name="UMENG_PUSH_CHANNEL"
+            android:value="${UMENG_PUSH_CHANNEL}"
+        />
+
+        <meta-data
+            android:name="XIAOMI_PUSH_APP_ID"
+            android:value="${XIAOMI_PUSH_APP_ID}"
+        />
+        <meta-data
+            android:name="XIAOMI_PUSH_APP_KEY"
+            android:value="${XIAOMI_PUSH_APP_KEY}"
+        />
+
+        <meta-data
+            android:name="OPPO_PUSH_APP_KEY"
+            android:value="${OPPO_PUSH_APP_KEY}"
+        />
+        <meta-data
+            android:name="OPPO_PUSH_APP_SECRET"
+            android:value="${OPPO_PUSH_APP_SECRET}"
+        />
+
+        <meta-data
+            android:name="MEIZU_PUSH_APP_ID"
+            android:value="${MEIZU_PUSH_APP_ID}"
+        />
+        <meta-data
+            android:name="MEIZU_PUSH_APP_KEY"
+            android:value="${MEIZU_PUSH_APP_KEY}"
+        />
+
+        <meta-data
+            android:name="com.huawei.hms.client.appid"
+            android:value="${HUAWEI_PUSH_APP_ID}"
+        />
+        <meta-data
+            android:name="com.vivo.push.app_id"
+            android:value="${VIVO_PUSH_APP_ID}"
+        />
+        <meta-data
+            android:name="com.vivo.push.api_key"
+            android:value="${VIVO_PUSH_APP_KEY}"
+        />
+
         <activity
             android:name=".UmengPushActivity"
             android:launchMode="singleTask"

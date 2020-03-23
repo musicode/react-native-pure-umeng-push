@@ -4,6 +4,8 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Bundle
 import android.os.Looper
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
@@ -19,6 +21,7 @@ import org.android.agoo.xiaomi.MiPushRegistar
 import org.json.JSONException
 import org.json.JSONObject
 
+
 class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), ActivityEventListener {
 
     companion object {
@@ -29,11 +32,29 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
         private var pushModule: RNTUmengPushModule? = null
 
+        // 获取写在 AndroidManifest.xml 中的参数，方便调用者切换版本
+        private var metaData: Bundle? = null
+
         private fun isMainThread(): Boolean {
             return Looper.getMainLooper() == Looper.myLooper()
         }
 
-        fun init(app: Application, appKey: String, appSecret: String, channel: String, debug: Boolean) {
+        fun init(app: Application, debug: Boolean) {
+
+            if (metaData == null) {
+                try {
+                    metaData = app.packageManager.getApplicationInfo(app.packageName, PackageManager.GET_META_DATA).metaData
+                }
+                catch (e: PackageManager.NameNotFoundException) {
+                    e.printStackTrace()
+                }
+            }
+
+            val meta = metaData ?: return
+
+            val appKey = meta.getString("UMENG_PUSH_APP_KEY", "")
+            val appSecret = meta.getString("UMENG_PUSH_APP_SECRET", "")
+            val channel = meta.getString("UMENG_PUSH_CHANNEL", "")
 
             UMConfigure.setLogEnabled(debug)
             UMConfigure.init(app, appKey, channel, UMConfigure.DEVICE_TYPE_PHONE, appSecret)
@@ -103,9 +124,13 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
         }
 
-        fun xiaomi(app: Application, appId: String, appKey: String) {
+        fun xiaomi(app: Application) {
             if (isMainThread()) {
-                MiPushRegistar.register(app, appId, appKey)
+                metaData?.let {
+                    val appId = it.getString("XIAOMI_PUSH_APP_ID", "")
+                    val appKey = it.getString("XIAOMI_PUSH_APP_KEY", "")
+                    MiPushRegistar.register(app, appId, appKey)
+                }
             }
         }
 
@@ -115,15 +140,23 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
             }
         }
 
-        fun meizu(app: Application, appId: String, appKey: String) {
+        fun meizu(app: Application) {
             if (isMainThread()) {
-                MeizuRegister.register(app, appId, appKey)
+                metaData?.let {
+                    val appId = it.getString("MEIZU_PUSH_APP_ID", "")
+                    val appKey = it.getString("MEIZU_PUSH_APP_KEY", "")
+                    MeizuRegister.register(app, appId, appKey)
+                }
             }
         }
 
-        fun oppo(app: Application, appId: String, appSecret: String) {
+        fun oppo(app: Application) {
             if (isMainThread()) {
-                OppoRegister.register(app, appId, appSecret)
+                metaData?.let {
+                    val appKey = it.getString("OPPO_PUSH_APP_KEY", "")
+                    val appSecret = it.getString("OPPO_PUSH_APP_SECRET", "")
+                    OppoRegister.register(app, appKey, appSecret)
+                }
             }
         }
 
