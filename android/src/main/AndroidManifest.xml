@@ -22,8 +22,8 @@
             android:value="\ ${UMENG_APP_KEY}"
         />
         <meta-data
-            android:name="UMENG_APP_SECRET"
-            android:value="\ ${UMENG_APP_SECRET}"
+            android:name="UMENG_PUSH_SECRET"
+            android:value="\ ${UMENG_PUSH_SECRET}"
         />
         <meta-data
             android:name="UMENG_CHANNEL"

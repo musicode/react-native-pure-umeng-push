@@ -68,7 +68,7 @@ buildTypes {
     debug {
         manifestPlaceholders = [
             UMENG_APP_KEY: '',
-            UMENG_APP_SECRET: '',
+            UMENG_PUSH_SECRET: '',
             UMENG_CHANNEL: '',
             HUAWEI_PUSH_APP_ID: '',
             XIAOMI_PUSH_APP_ID: '',
@@ -84,7 +84,7 @@ buildTypes {
     release {
         manifestPlaceholders = [
             UMENG_APP_KEY: '',
-            UMENG_APP_SECRET: '',
+            UMENG_PUSH_SECRET: '',
             UMENG_CHANNEL: '',
             HUAWEI_PUSH_APP_ID: '',
             XIAOMI_PUSH_APP_ID: '',
