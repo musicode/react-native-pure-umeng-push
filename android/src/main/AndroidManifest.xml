@@ -16,44 +16,45 @@
 
     <application>
 
+        <!-- value 统一前面加空格（除了华为和vivo），避免读取 meta data 自动转型成数字 -->
         <meta-data
             android:name="UMENG_APP_KEY"
-            android:value="${UMENG_APP_KEY}"
+            android:value="\ ${UMENG_APP_KEY}"
         />
         <meta-data
             android:name="UMENG_APP_SECRET"
-            android:value="${UMENG_APP_SECRET}"
+            android:value="\ ${UMENG_APP_SECRET}"
         />
         <meta-data
             android:name="UMENG_CHANNEL"
-            android:value="${UMENG_CHANNEL}"
+            android:value="\ ${UMENG_CHANNEL}"
         />
 
         <meta-data
             android:name="XIAOMI_PUSH_APP_ID"
-            android:value="${XIAOMI_PUSH_APP_ID}"
+            android:value="\ ${XIAOMI_PUSH_APP_ID}"
         />
         <meta-data
             android:name="XIAOMI_PUSH_APP_KEY"
-            android:value="${XIAOMI_PUSH_APP_KEY}"
+            android:value="\ ${XIAOMI_PUSH_APP_KEY}"
         />
 
         <meta-data
             android:name="OPPO_PUSH_APP_KEY"
-            android:value="${OPPO_PUSH_APP_KEY}"
+            android:value="\ ${OPPO_PUSH_APP_KEY}"
         />
         <meta-data
             android:name="OPPO_PUSH_APP_SECRET"
-            android:value="${OPPO_PUSH_APP_SECRET}"
+            android:value="\ ${OPPO_PUSH_APP_SECRET}"
         />
 
         <meta-data
             android:name="MEIZU_PUSH_APP_ID"
-            android:value="${MEIZU_PUSH_APP_ID}"
+            android:value="\ ${MEIZU_PUSH_APP_ID}"
         />
         <meta-data
             android:name="MEIZU_PUSH_APP_KEY"
-            android:value="${MEIZU_PUSH_APP_KEY}"
+            android:value="\ ${MEIZU_PUSH_APP_KEY}"
         />
 
         <meta-data

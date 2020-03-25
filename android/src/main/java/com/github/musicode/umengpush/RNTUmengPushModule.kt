@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Looper
 import com.facebook.react.bridge.*
@@ -40,9 +39,9 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         // 初始化友盟基础库
         fun init(app: Application, metaData: Bundle, debug: Boolean) {
 
-            val appKey = metaData.getString("UMENG_APP_KEY", "")
-            val appSecret = metaData.getString("UMENG_APP_SECRET", "")
-            val channel = metaData.getString("UMENG_CHANNEL", "")
+            val appKey = metaData.getString("UMENG_APP_KEY", "").trim()
+            val appSecret = metaData.getString("UMENG_APP_SECRET", "").trim()
+            val channel = metaData.getString("UMENG_CHANNEL", "").trim()
 
             UMConfigure.setLogEnabled(debug)
             UMConfigure.init(app, appKey, channel, UMConfigure.DEVICE_TYPE_PHONE, appSecret)
@@ -50,7 +49,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         }
 
         // 初始化友盟推送
-        fun push(app: Application, metaData: Bundle) {
+        fun push(app: Application, notificaitonOnForeground: Boolean) {
 
             val pushAgent = PushAgent.getInstance(app)
 
@@ -61,7 +60,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
             // app 在前台时是否显示推送
             // 在 pushAgent.register 方法之前调用
-            pushAgent.setNotificaitonOnForeground(true)
+            pushAgent.setNotificaitonOnForeground(notificaitonOnForeground)
 
             pushAgent.messageHandler = object : UmengMessageHandler() {
                 override fun dealWithNotificationMessage(context: Context?, msg: UMessage?) {
@@ -125,16 +124,16 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
         fun xiaomi(app: Application, metaData: Bundle) {
             if (isMainThread()) {
-                val appId = metaData.getString("XIAOMI_PUSH_APP_ID", "")
-                val appKey = metaData.getString("XIAOMI_PUSH_APP_KEY", "")
+                val appId = metaData.getString("XIAOMI_PUSH_APP_ID", "").trim()
+                val appKey = metaData.getString("XIAOMI_PUSH_APP_KEY", "").trim()
                 MiPushRegistar.register(app, appId, appKey)
             }
         }
 
         fun oppo(app: Application, metaData: Bundle) {
             if (isMainThread()) {
-                val appKey = metaData.getString("OPPO_PUSH_APP_KEY", "")
-                val appSecret = metaData.getString("OPPO_PUSH_APP_SECRET", "")
+                val appKey = metaData.getString("OPPO_PUSH_APP_KEY", "").trim()
+                val appSecret = metaData.getString("OPPO_PUSH_APP_SECRET", "").trim()
                 OppoRegister.register(app, appKey, appSecret)
             }
         }
@@ -147,8 +146,8 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
         fun meizu(app: Application, metaData: Bundle) {
             if (isMainThread()) {
-                val appId = metaData.getString("MEIZU_PUSH_APP_ID", "")
-                val appKey = metaData.getString("MEIZU_PUSH_APP_KEY", "")
+                val appId = metaData.getString("MEIZU_PUSH_APP_ID", "").trim()
+                val appKey = metaData.getString("MEIZU_PUSH_APP_KEY", "").trim()
                 MeizuRegister.register(app, appId, appKey)
             }
         }

@@ -111,9 +111,11 @@ override fun onCreate() {
     UmengPushActivity.mainActivityClass = MainActivity::class.java
 
     // 初始化友盟基础库
+    // 第三个参数表示是否显示调试信息
     RNTUmengPushModule.init(this, metaData, false)
     // 初始化友盟推送
-    RNTUmengPushModule.push(this, metaData)
+    // 第二个参数表示 app 在前台时是否展现通知
+    RNTUmengPushModule.push(this, true)
     // 初始化厂商通道，按需调用
     RNTUmengPushModule.huawei(this, metaData)
     RNTUmengPushModule.xiaomi(this, metaData)
