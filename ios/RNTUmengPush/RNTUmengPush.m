@@ -165,9 +165,9 @@ RCT_EXPORT_MODULE(RNTUmengPush);
             }
         }
     }
-    // 系统版本大于 10，只能是静默推送
-    // 静默推送要求 alert 为空
-    else if (message == nil || message.length == 0) {
+    // 系统版本 >= 10，只能是静默推送
+    // 静默推送时，message 必然是字符串，但是必须为空，否则会变成通知
+    else if (message != nil && message.length == 0) {
         if (umengPushInstance != nil) {
             [umengPushInstance sendEventWithName:@"message" body:body];
         }
