@@ -6,13 +6,15 @@
 
 ```
 npm i react-native-pure-umeng-push
-// link below 0.60
+// 0.60 版本以下手动执行这句
 react-native link react-native-pure-umeng-push
 ```
 
 ## Setup
 
 ### iOS
+
+确保证书配置正确。举个例子，如果你的 App 有两个版本：测试版和正式版，`Bundle ID` 分别是 `com.abc.test` 和 `com.abc.prod`，那么证书必须和 `Bundle ID` 对应。
 
 打开推送开关。
 
@@ -100,6 +102,10 @@ buildTypes {
 }
 ```
 
+`UMENG_APP_KEY` 和 `UMENG_PUSH_SECRET` 来自友盟推送里的这两个字段，如下：
+
+![image](https://user-images.githubusercontent.com/2732303/77606227-ded8b680-6f51-11ea-9aa4-0378e79deaa7.png)
+
 在 `MainApplication` 的 `onCreate` 方法进行初始化，如下：
 
 ```kotlin
@@ -127,14 +133,11 @@ override fun onCreate() {
 
 配置厂商通道请先阅读[官方文档](https://developer.umeng.com/docs/66632/detail/98589)，主要是获取各个通道的 `appId`、`appKey`、`appSecret` 等数据，并保存到友盟后台的应用信息里。
 
-### 配置魅族
+### 解决魅族的兼容问题
 
-配置系统通知图标
+在 `drawable` 目录下添加一个图标，命名为 `stat_sys_third_app_notify.png`，建议尺寸 `64px * 64px`，图标四周留有透明。若不添加此图标，可能在部分魅族手机上无法弹出通知。
 
-请在 `drawable` 目录下添加一个图标，命名为 `stat_sys_third_app_notify.png`，建议尺寸 `64px * 64px`，图标四周留有透明。若不添加此图标，可能在部分魅族手机上无法弹出通知。
-
-
-## 当 App 离线时，转为厂商通道下发推送
+### 当 App 离线时，转为厂商通道下发推送
 
 打开指定页面填入 `com.github.musicode.umengpush.UmengPushActivity`。
 
@@ -145,6 +148,7 @@ override fun onCreate() {
 ```js
 import umengPush from 'react-native-pure-umeng-push'
 
+// 注册获取 device token
 umengPush.addListener(
   'register',
   function (data) {
@@ -153,10 +157,13 @@ umengPush.addListener(
     // 点击的推送
     data.notification
     // 推送的自定义参数
+    // 字符 d、p 为友盟保留字段，不能作为自定义参数的 key，value 只能是字符串类型，
+    // 字符总和不能超过 1000 个字符
     data.custom
   }
 )
 
+// 远程推送
 umengPush.addListener(
   'remoteNotification',
   function (data) {
@@ -168,7 +175,28 @@ umengPush.addListener(
     // 推送详情，如标题、内容
     data.notification
     // 推送的自定义参数
+    // 字符 d、p 为友盟保留字段，不能作为自定义参数的 key，value 只能是字符串类型，
+    // 字符总和不能超过 1000 个字符
     data.custom
+  }
+)
+
+// 透传消息
+// ios 通过静默推送实现，例子：payload: { aps: { alert: 'hello', 'content-available': 1 }, key1: 'value1' }
+// android 通过自定义消息实现，例子：payload: { display_type: 'message', body: { custom: 'hello' }, extra: { key1: 'value1' } }
+umengPush.addListener(
+  'message',
+  function (data) {
+    // 自定义参数
+    // 字符 d、p 为友盟保留字段，不能作为自定义参数的 key，value 只能是字符串类型，
+    // 字符总和不能超过 1000 个字符
+    // 即例子中的 { key1: 'value1' }
+    data.custom
+
+    // ios 读取 alert
+    // android 读取 custom
+    // 即例子中的 hello
+    data.message
   }
 )
 

@@ -18,7 +18,6 @@ import org.android.agoo.mezu.MeizuRegister
 import org.android.agoo.oppo.OppoRegister
 import org.android.agoo.vivo.VivoRegister
 import org.android.agoo.xiaomi.MiPushRegistar
-import org.json.JSONException
 import org.json.JSONObject
 
 
@@ -196,26 +195,6 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         }
 
         sendEvent("register", map)
-
-    }
-
-    @ReactMethod
-    fun enable() {
-
-        pushAgent.enable(object : IUmengCallback {
-            override fun onSuccess() {}
-            override fun onFailure(s: String, s1: String) {}
-        })
-
-    }
-
-    @ReactMethod
-    fun disable() {
-
-        pushAgent.disable(object : IUmengCallback {
-            override fun onSuccess() {}
-            override fun onFailure(s: String, s1: String) {}
-        })
 
     }
 
@@ -460,7 +439,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     private fun onMessage(message: UMessage) {
 
         val map = Arguments.createMap()
-        map.putMap("message", formatMessage(message))
+        map.putMap("message", message.custom)
         map.putMap("custom", formatCustom(message))
 
         sendEvent("message", map)
@@ -484,33 +463,11 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     private fun formatCustom(msg: UMessage): WritableMap {
         val custom = Arguments.createMap()
         msg.extra?.let {
-            for ((key,value) in it){
+            for ((key,value) in it) {
                 custom.putString(key, value)
             }
         }
         return custom
-    }
-
-    private fun formatMessage(msg: UMessage): WritableMap {
-
-        val customMessage = Arguments.createMap()
-        val json = msg.custom
-
-        if (json.startsWith("{") && json.endsWith("}")) {
-            try {
-                val obj = JSONObject(json)
-                val iterator = obj.keys()
-                while (iterator.hasNext()) {
-                    val key = iterator.next()
-                    customMessage.putString(key, obj.getString(key))
-                }
-            }
-            catch (e: JSONException) {
-                e.printStackTrace()
-            }
-        }
-
-        return customMessage
     }
 
     override fun onNewIntent(intent: Intent?) {

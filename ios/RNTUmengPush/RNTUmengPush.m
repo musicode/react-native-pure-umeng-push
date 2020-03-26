@@ -32,21 +32,36 @@ NSMutableDictionary* getUmengNotification(NSDictionary *userInfo) {
     NSMutableDictionary *resultDict = [[NSMutableDictionary alloc] init];
     resultDict[@"custom"] = custom;
 
-    NSDictionary *alertDict = userInfo[@"aps"][@"alert"];
-    if (alertDict) {
-        resultDict[@"notification"] = @{
-                              @"title": alertDict[@"title"] ?: @"",
-                              @"subTitle": alertDict[@"subtitle"] ?: @"",
-                              @"content": alertDict[@"body"] ?: @""
-                          };
+    NSDictionary *apsDict = userInfo[@"aps"];
+
+    int contentAvailable = 0;
+    if ([apsDict objectForKey:@"content-available"]) {
+        contentAvailable = [[NSString stringWithFormat:@"%@", apsDict[@"content-available"]] intValue];
     }
+
+    // 静默推送
+    if (contentAvailable == 1) {
+        // alert 不是个对象，而是字符串，对标安卓的 custom 字段也是个字符串
+        resultDict[@"message"] = apsDict[@"alert"] ?: @"";
+    }
+    // 普通推送
     else {
-        NSString *alertStr = userInfo[@"aps"][@"alert"];
-        resultDict[@"notification"] = @{
-                              @"title": alertStr ?: @"",
-                              @"subTitle": @"",
-                              @"content": @""
-                          };
+        NSDictionary *alertDict = apsDict[@"alert"];
+        if (alertDict) {
+            resultDict[@"notification"] = @{
+                                  @"title": alertDict[@"title"] ?: @"",
+                                  @"subTitle": alertDict[@"subtitle"] ?: @"",
+                                  @"content": alertDict[@"body"] ?: @""
+                              };
+        }
+        else {
+            NSString *alertStr = userInfo[@"aps"][@"alert"];
+            resultDict[@"notification"] = @{
+                                  @"title": alertStr ?: @"",
+                                  @"subTitle": @"",
+                                  @"content": @""
+                              };
+        }
     }
 
     return resultDict;
@@ -84,16 +99,16 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 }
 
 + (void)init:(NSString *)appKey debug:(BOOL)debug {
-    
+
     [UMConfigure initWithAppkey:appKey channel:@"App Store"];
     [UMConfigure setLogEnabled:debug];
-    
+
 }
 
 + (void)push:(NSDictionary *)launchOptions {
-    
+
     umengLaunchOptions = launchOptions;
-    
+
 }
 
 + (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
@@ -109,7 +124,7 @@ RCT_EXPORT_MODULE(RNTUmengPush);
                           ntohl(tokenBytes[6]), ntohl(tokenBytes[7])];
 
     NSMutableDictionary *body;
-    
+
     if ([umengLaunchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey]) {
         NSDictionary *userInfo = [umengLaunchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
         body = getUmengNotification(userInfo);
@@ -117,9 +132,9 @@ RCT_EXPORT_MODULE(RNTUmengPush);
     else {
         body = [[NSMutableDictionary alloc] init];
     }
-    
+
     body[@"deviceToken"] = hexToken;
-    
+
     if (umengPushInstance != nil) {
         [umengPushInstance sendEventWithName:@"register" body:body];
     }
@@ -128,15 +143,17 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 
 + (void)didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
 
+    // 不加这句貌似会有个原生 alert
+    [UMessage setAutoAlert:NO];
     if ([[[UIDevice currentDevice] systemVersion]intValue] < 10) {
         [UMessage didReceiveRemoteNotification:userInfo];
         if (umengPushInstance != nil) {
-            [umengPushInstance sendEventWithName:@"remoteNotification" body:getUmengNotification(userInfo)];
+            [umengPushInstance sendRemoteNotification:getUmengNotification(userInfo)];
         }
     }
 
     completionHandler(UIBackgroundFetchResultNewData);
-    
+
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler API_AVAILABLE(ios(10.0)) {
@@ -144,20 +161,20 @@ RCT_EXPORT_MODULE(RNTUmengPush);
     NSDictionary *userInfo = notification.request.content.userInfo;
 
     if ([notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]]) {
+        // 不加这句貌似会有个原生 alert
+        [UMessage setAutoAlert:NO];
         // 应用处于前台时的远程推送
         [UMessage didReceiveRemoteNotification:userInfo];
-        if (umengPushInstance != nil) {
-            NSMutableDictionary *body = getUmengNotification(userInfo);
-            body[@"presented"] = @YES;
-            [umengPushInstance sendEventWithName:@"remoteNotification" body:body];
-        }
+        NSMutableDictionary *body = getUmengNotification(userInfo);
+        body[@"presented"] = @YES;
+        [self sendRemoteNotification:body];
     }
     else {
         // 应用处于前台时的本地推送接受
     }
 
     completionHandler(UNNotificationPresentationOptionSound|UNNotificationPresentationOptionBadge|UNNotificationPresentationOptionAlert);
-    
+
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void(^)(void))completionHandler API_AVAILABLE(ios(10.0)) {
@@ -167,37 +184,46 @@ RCT_EXPORT_MODULE(RNTUmengPush);
     if ([response.notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]]) {
         // 应用处于后台时的远程推送
         [UMessage didReceiveRemoteNotification:userInfo];
-        if (umengPushInstance != nil) {
-            NSMutableDictionary *body = getUmengNotification(userInfo);
-            body[@"clicked"] = @YES;
-            [umengPushInstance sendEventWithName:@"remoteNotification" body:body];
-        }
+        NSMutableDictionary *body = getUmengNotification(userInfo);
+        body[@"clicked"] = @YES;
+        [self sendRemoteNotification:body];
     }
     else {
         // 应用处于后台时的本地推送接受
     }
-    
+
 }
 
+- (void)sendRemoteNotification:(NSDictionary *)body {
+
+    NSString *eventName = @"remoteNotification";
+
+    if ([body objectForKey:@"message"]) {
+        eventName = @"message";
+    }
+
+    [self sendEventWithName:eventName body:body];
+
+}
 
 
 
 // 获取 device token
 RCT_EXPORT_METHOD(start) {
-    
+
     // Push 组件基本功能配置
     UMessageRegisterEntity *entity = [[UMessageRegisterEntity alloc] init];
 
     // type 是对推送的几个参数的选择，可以选择一个或者多个
     // 默认是三个全部打开，即：声音，弹窗，角标
     entity.types = UMessageAuthorizationOptionBadge|UMessageAuthorizationOptionSound|UMessageAuthorizationOptionAlert;
-    
+
     if (@available(iOS 10.0, *)) {
         [UNUserNotificationCenter currentNotificationCenter].delegate = self;
     }
 
     dispatch_async(dispatch_get_main_queue(), ^{
-       
+
         [UMessage registerForRemoteNotificationsWithLaunchOptions:umengLaunchOptions Entity:entity completionHandler:^(BOOL granted, NSError * _Nullable error) {
 
             if (!granted) {
@@ -212,9 +238,9 @@ RCT_EXPORT_METHOD(start) {
             }
 
         }];
-        
+
     });
-    
+
 }
 
 // 获取所有标签
