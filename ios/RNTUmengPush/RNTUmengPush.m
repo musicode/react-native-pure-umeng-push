@@ -93,6 +93,7 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 - (NSArray<NSString *> *)supportedEvents {
   return @[
       @"register",
+      @"message",
       @"localNotification",
       @"remoteNotification",
   ];

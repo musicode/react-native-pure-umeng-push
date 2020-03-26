@@ -455,7 +455,6 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     private fun formatNotification(msg: UMessage): WritableMap {
         val body = Arguments.createMap()
         body.putString("title", msg.title)
-        body.putString("subTitle", "")
         body.putString("content", msg.text)
         return body
     }
