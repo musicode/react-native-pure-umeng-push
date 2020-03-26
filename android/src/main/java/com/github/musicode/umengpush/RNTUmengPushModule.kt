@@ -10,7 +10,10 @@ import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.umeng.commonsdk.UMConfigure
 import com.umeng.commonsdk.statistics.common.MLog
-import com.umeng.message.*
+import com.umeng.message.IUmengRegisterCallback
+import com.umeng.message.PushAgent
+import com.umeng.message.UmengMessageHandler
+import com.umeng.message.UmengNotificationClickHandler
 import com.umeng.message.entity.UMessage
 import com.umeng.message.tag.TagManager
 import org.android.agoo.huawei.HuaWeiRegister
@@ -30,10 +33,6 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         private var deviceToken = ""
 
         private var pushModule: RNTUmengPushModule? = null
-
-        private fun isMainThread(): Boolean {
-            return Looper.getMainLooper() == Looper.myLooper()
-        }
 
         // 初始化友盟基础库
         fun init(app: Application, metaData: Bundle, debug: Boolean) {
@@ -83,27 +82,22 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
             // 自定义通知栏打开动作，让 js 去处理
             pushAgent.notificationClickHandler = object : UmengNotificationClickHandler() {
                 override fun launchApp(context: Context?, msg: UMessage?) {
+                    super.launchApp(context, msg)
                     msg?.let {
                         pushModule?.onNotificationClicked(it)
                     }
                 }
 
                 override fun openUrl(context: Context?, msg: UMessage?) {
-                    msg?.let {
-                        pushModule?.onNotificationClicked(it)
-                    }
+                    this.launchApp(context, msg)
                 }
 
                 override fun openActivity(context: Context?, msg: UMessage?) {
-                    msg?.let {
-                        pushModule?.onNotificationClicked(it)
-                    }
+                    this.launchApp(context, msg)
                 }
 
                 override fun dealWithCustomAction(context: Context?, msg: UMessage?) {
-                    msg?.let {
-                        pushModule?.onNotificationClicked(it)
-                    }
+                    this.launchApp(context, msg)
                 }
             }
 
@@ -116,39 +110,29 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         }
 
         fun huawei(app: Application, metaData: Bundle) {
-            if (isMainThread()) {
-                HuaWeiRegister.register(app)
-            }
+            HuaWeiRegister.register(app)
         }
 
         fun xiaomi(app: Application, metaData: Bundle) {
-            if (isMainThread()) {
-                val appId = metaData.getString("XIAOMI_PUSH_APP_ID", "").trim()
-                val appKey = metaData.getString("XIAOMI_PUSH_APP_KEY", "").trim()
-                MiPushRegistar.register(app, appId, appKey)
-            }
+            val appId = metaData.getString("XIAOMI_PUSH_APP_ID", "").trim()
+            val appKey = metaData.getString("XIAOMI_PUSH_APP_KEY", "").trim()
+            MiPushRegistar.register(app, appId, appKey)
         }
 
         fun oppo(app: Application, metaData: Bundle) {
-            if (isMainThread()) {
-                val appKey = metaData.getString("OPPO_PUSH_APP_KEY", "").trim()
-                val appSecret = metaData.getString("OPPO_PUSH_APP_SECRET", "").trim()
-                OppoRegister.register(app, appKey, appSecret)
-            }
+            val appKey = metaData.getString("OPPO_PUSH_APP_KEY", "").trim()
+            val appSecret = metaData.getString("OPPO_PUSH_APP_SECRET", "").trim()
+            OppoRegister.register(app, appKey, appSecret)
         }
 
         fun vivo(app: Application, metaData: Bundle) {
-            if (isMainThread()) {
-                VivoRegister.register(app)
-            }
+            VivoRegister.register(app)
         }
 
         fun meizu(app: Application, metaData: Bundle) {
-            if (isMainThread()) {
-                val appId = metaData.getString("MEIZU_PUSH_APP_ID", "").trim()
-                val appKey = metaData.getString("MEIZU_PUSH_APP_KEY", "").trim()
-                MeizuRegister.register(app, appId, appKey)
-            }
+            val appId = metaData.getString("MEIZU_PUSH_APP_ID", "").trim()
+            val appKey = metaData.getString("MEIZU_PUSH_APP_KEY", "").trim()
+            MeizuRegister.register(app, appId, appKey)
         }
 
     }
