@@ -104,6 +104,9 @@ RCT_EXPORT_MODULE(RNTUmengPush);
     [UMConfigure initWithAppkey:appKey channel:@"App Store"];
     [UMConfigure setLogEnabled:debug];
 
+    // 当应用在前台运行收到 Push 时不弹出 Alert 框
+    [UMessage setAutoAlert:NO];
+
 }
 
 + (void)push:(NSDictionary *)launchOptions {
@@ -144,13 +147,22 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 
 + (void)didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
 
-    // 不加这句貌似会有个原生 alert
-    [UMessage setAutoAlert:NO];
-    if ([[[UIDevice currentDevice] systemVersion]intValue] < 10) {
+    NSMutableDictionary *body = getUmengNotification(userInfo);
+
+    BOOL sendToJs = NO;
+
+    // 静默推送会走进这里，不论是什么系统版本
+    if ([body objectForKey:@"message"]) {
+        sendToJs = YES;
+    }
+    // 普通推送，要求系统版本低于 10
+    else if ([[[UIDevice currentDevice] systemVersion]intValue] < 10) {
         [UMessage didReceiveRemoteNotification:userInfo];
-        if (umengPushInstance != nil) {
-            [umengPushInstance sendRemoteNotification:getUmengNotification(userInfo)];
-        }
+        sendToJs = YES;
+    }
+
+    if (sendToJs && umengPushInstance != nil) {
+        [umengPushInstance sendNotificationToJs:body];
     }
 
     completionHandler(UIBackgroundFetchResultNewData);
@@ -162,13 +174,11 @@ RCT_EXPORT_MODULE(RNTUmengPush);
     NSDictionary *userInfo = notification.request.content.userInfo;
 
     if ([notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]]) {
-        // 不加这句貌似会有个原生 alert
-        [UMessage setAutoAlert:NO];
         // 应用处于前台时的远程推送
         [UMessage didReceiveRemoteNotification:userInfo];
         NSMutableDictionary *body = getUmengNotification(userInfo);
         body[@"presented"] = @YES;
-        [self sendRemoteNotification:body];
+        [self sendNotificationToJs:body];
     }
     else {
         // 应用处于前台时的本地推送接受
@@ -187,7 +197,7 @@ RCT_EXPORT_MODULE(RNTUmengPush);
         [UMessage didReceiveRemoteNotification:userInfo];
         NSMutableDictionary *body = getUmengNotification(userInfo);
         body[@"clicked"] = @YES;
-        [self sendRemoteNotification:body];
+        [self sendNotificationToJs:body];
     }
     else {
         // 应用处于后台时的本地推送接受
@@ -195,7 +205,7 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 
 }
 
-- (void)sendRemoteNotification:(NSDictionary *)body {
+- (void)sendNotificationToJs:(NSDictionary *)body {
 
     NSString *eventName = @"remoteNotification";
 
@@ -416,11 +426,6 @@ RCT_EXPORT_METHOD(setAdvanced:(NSDictionary*)options) {
     // 设置是否允许 SDK 自动清空角标，默认自动角标清零
     if ([options objectForKey:@"badgeClear"]) {
         [UMessage setBadgeClear:[RCTConvert BOOL:options[@"badgeClear"]]];
-    }
-
-    // 设置是否允许 SDK 当应用在前台运行收到 Push 时弹出 Alert 框
-    if ([options objectForKey:@"autoAlert"]) {
-        [UMessage setAutoAlert:[RCTConvert BOOL:options[@"autoAlert"]]];
     }
 
 }

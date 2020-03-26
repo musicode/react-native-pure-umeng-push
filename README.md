@@ -182,8 +182,11 @@ umengPush.addListener(
 )
 
 // 透传消息
-// ios 通过静默推送实现，例子：payload: { aps: { alert: 'hello', 'content-available': 1 }, key1: 'value1' }
-// android 通过自定义消息实现，例子：payload: { display_type: 'message', body: { custom: 'hello' }, extra: { key1: 'value1' } }
+// ios 通过静默推送实现，例子：payload: { aps: { 'content-available': 1 }, key1: 'value1' }
+// android 通过自定义消息实现，例子：payload: { display_type: 'message', body: { custom: '' }, extra: { key1: 'value1' } }
+//
+// 注意：ios aps 下面不能包含 alert、badge、sound 等字段，如果包含了其中任何一个，就会变成通知，即会显示在通知栏。
+// 你也可以加上 alert，比如 aps: { alert: '你有一条新消息', 'content-available': 1 }，这样还是会走进 message 事件回调里，只是展现为通知形式
 umengPush.addListener(
   'message',
   function (data) {
@@ -193,9 +196,7 @@ umengPush.addListener(
     // 即例子中的 { key1: 'value1' }
     data.custom
 
-    // ios 读取 alert
-    // android 读取 custom
-    // 即例子中的 hello
+    // alert 或 custom 字段中的字符串值
     data.message
   }
 )
