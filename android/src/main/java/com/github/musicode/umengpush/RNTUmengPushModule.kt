@@ -379,10 +379,10 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     private fun getAliasType(type: String): String {
         return when (type) {
             "sina" -> {
-               "weibo"
+               "sina"
             }
             "tencent" -> {
-                "tencent_weibo"
+                "tencent"
             }
             "qq" -> {
                 "qq"
@@ -439,7 +439,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     private fun onMessage(message: UMessage) {
 
         val map = Arguments.createMap()
-        map.putMap("message", message.custom)
+        map.putString("message", message.custom)
         map.putMap("custom", formatCustom(message))
 
         sendEvent("message", map)
