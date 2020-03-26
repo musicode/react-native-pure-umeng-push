@@ -8,7 +8,7 @@
 RNTUmengPush *umengPushInstance;
 NSDictionary *umengLaunchOptions;
 
-// 获取自定义键值对
+// 获取自定义参数
 NSDictionary* getUmengCustom(NSDictionary *userInfo) {
 
     NSMutableDictionary *custom = [[NSMutableDictionary alloc] init];
@@ -148,21 +148,29 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 + (void)didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
 
     NSMutableDictionary *body = getUmengNotification(userInfo);
-
-    BOOL sendToJs = NO;
+    NSString *message = body[@"message"];
 
     // 静默推送会走进这里，不论是什么系统版本
-    if ([body objectForKey:@"message"]) {
-        sendToJs = YES;
-    }
-    // 普通推送，要求系统版本低于 10
-    else if ([[[UIDevice currentDevice] systemVersion]intValue] < 10) {
-        [UMessage didReceiveRemoteNotification:userInfo];
-        sendToJs = YES;
-    }
+    // 普通推送，要求系统版本低于 10 才执行
 
-    if (sendToJs && umengPushInstance != nil) {
-        [umengPushInstance sendNotificationToJs:body];
+    if ([[[UIDevice currentDevice] systemVersion]intValue] < 10) {
+        [UMessage didReceiveRemoteNotification:userInfo];
+
+        if (umengPushInstance != nil) {
+            if (message) {
+                [umengPushInstance sendEventWithName:@"message" body:body];
+            }
+            else {
+                [umengPushInstance sendEventWithName:@"remoteNotification" body:body];
+            }
+        }
+    }
+    // 系统版本大于 10，只能是静默推送
+    // 静默推送要求 alert 为空
+    else if (message == nil || message.length == 0) {
+        if (umengPushInstance != nil) {
+            [umengPushInstance sendEventWithName:@"message" body:body];
+        }
     }
 
     completionHandler(UIBackgroundFetchResultNewData);
@@ -178,6 +186,7 @@ RCT_EXPORT_MODULE(RNTUmengPush);
         [UMessage didReceiveRemoteNotification:userInfo];
         NSMutableDictionary *body = getUmengNotification(userInfo);
         body[@"presented"] = @YES;
+        // 如果静默推送带了 alert 字段，则会作为通知展现
         [self sendNotificationToJs:body];
     }
     else {
@@ -197,6 +206,7 @@ RCT_EXPORT_MODULE(RNTUmengPush);
         [UMessage didReceiveRemoteNotification:userInfo];
         NSMutableDictionary *body = getUmengNotification(userInfo);
         body[@"clicked"] = @YES;
+        // 如果静默推送带了 alert 字段，则会作为通知展现
         [self sendNotificationToJs:body];
     }
     else {
@@ -216,7 +226,6 @@ RCT_EXPORT_MODULE(RNTUmengPush);
     [self sendEventWithName:eventName body:body];
 
 }
-
 
 
 // 获取 device token

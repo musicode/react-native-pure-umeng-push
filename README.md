@@ -190,6 +190,20 @@ umengPush.addListener(
 umengPush.addListener(
   'message',
   function (data) {
+
+    // ios 用于静默推送实现消息透传
+    // 静默推送不会在通知栏展现，这一点很符合透传消息的要求
+    // 但是苹果要求静默推送的 aps 对象下不能包含 alert、badge、sound 等字段
+    // 如果我们加了 alert，它就会变成通知，会展现在通知栏里
+    // 有时候，你会希望加上 alert，类似 aps: { alert: '你有一条新消息', 'content-available': 1 }
+    // 这时依然会触发 message 事件回调，只是会带上 remoteNotification 特有的 clicked 或 presented 属性
+    // 如果你希望和安卓表现一样，只需要过滤掉 clicked 即可，如下
+    if (data.clicked) {
+      return
+    }
+
+    // 这样只有当 app 在前台时，才会响应透传消息
+
     // 自定义参数
     // 字符 d、p 为友盟保留字段，不能作为自定义参数的 key，value 只能是字符串类型，
     // 字符总和不能超过 1000 个字符
@@ -198,6 +212,7 @@ umengPush.addListener(
 
     // alert 或 custom 字段中的字符串值
     data.message
+
   }
 )
 
