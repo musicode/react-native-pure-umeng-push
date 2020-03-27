@@ -441,7 +441,8 @@ RCT_EXPORT_METHOD(setAdvanced:(NSDictionary*)options) {
 
 - (NSString *)getAliasType:(NSString *)type {
 
-    NSString *aliasType = @"custom";
+    // 默认用外面传入的
+    NSString *aliasType = type;
 
     // 新浪微博
     if ([type isEqualToString:@"sina"]) {

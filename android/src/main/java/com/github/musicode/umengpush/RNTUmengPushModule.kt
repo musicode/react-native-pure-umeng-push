@@ -393,7 +393,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
                 "twitter"
             }
             else -> {
-                "custom"
+                type
             }
         }
     }

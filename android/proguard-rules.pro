@@ -27,6 +27,14 @@
    public static final int *;
 }
 
+-keepclassmembers class * {
+   public <init> (org.json.JSONObject);
+}
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
 # oppo
 -keep public class * extends android.app.Service
 
