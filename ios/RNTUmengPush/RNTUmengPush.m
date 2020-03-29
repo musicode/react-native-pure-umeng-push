@@ -99,9 +99,9 @@ RCT_EXPORT_MODULE(RNTUmengPush);
   ];
 }
 
-+ (void)init:(NSString *)appKey debug:(BOOL)debug {
++ (void)init:(NSString *)appKey channel:(NSString *)channel debug:(BOOL)debug {
 
-    [UMConfigure initWithAppkey:appKey channel:@"App Store"];
+    [UMConfigure initWithAppkey:appKey channel:channel];
     [UMConfigure setLogEnabled:debug];
 
     // 当应用在前台运行收到 Push 时不弹出 Alert 框

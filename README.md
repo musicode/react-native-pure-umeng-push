@@ -33,7 +33,7 @@ react-native link react-native-pure-umeng-push
 {
   ...
   // 初始化友盟基础库
-  [RNTUmengPush init:@"appKey" debug:false];
+  [RNTUmengPush init:@"appKey" channel:@"App Store" debug:false];
   // 初始化友盟推送
   [RNTUmengPush push:launchOptions];
 
