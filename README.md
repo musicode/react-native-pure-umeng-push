@@ -12,17 +12,17 @@ react-native link react-native-pure-umeng-push
 
 ## Setup
 
+![image](https://user-images.githubusercontent.com/2732303/77606227-ded8b680-6f51-11ea-9aa4-0378e79deaa7.png)
+
+打开应用信息页面，安卓推送有 `Appkey` 和 `Umeng Message Secret` 两个字段，iOS 只有 `Appkey` 字段，后面将用这些字段初始化友盟。
+
 ### iOS
 
-确保证书配置正确。举个例子，如果你的 App 有两个版本：测试版和正式版，`Bundle ID` 分别是 `com.abc.test` 和 `com.abc.prod`，那么证书必须和 `Bundle ID` 对应。
+确保推送证书配置正确。举个例子，如果你的 App 有两个版本：测试版和正式版，`Bundle ID` 分别是 `com.abc.test` 和 `com.abc.prod`，那么证书必须和 `Bundle ID` 对应。
 
-打开推送开关。
+打开 Xcode，开启推送。
 
-![](http://docs-aliyun.cn-hangzhou.oss.aliyun-inc.com/assets/pic/66734/UMDP_zh/1518004555215/pushswitch.png)
-
-打开后台推送权限设置
-
-![](http://docs-aliyun.cn-hangzhou.oss.aliyun-inc.com/assets/pic/66734/UMDP_zh/1518004619406/background.png)
+![image](https://user-images.githubusercontent.com/2732303/77887093-8fb9bb00-729c-11ea-8d71-8a97c1b6a3a2.png)
 
 修改 `AppDelegate.m`，如下
 
@@ -33,6 +33,8 @@ react-native link react-native-pure-umeng-push
 {
   ...
   // 初始化友盟基础库
+  // channel 一般填 App Store，如果有测试环境，可按需填写
+  // debug 表示是否打印调试信息
   [RNTUmengPush init:@"appKey" channel:@"App Store" debug:false];
   // 初始化友盟推送
   [RNTUmengPush push:launchOptions];
@@ -102,9 +104,7 @@ buildTypes {
 }
 ```
 
-`UMENG_APP_KEY` 和 `UMENG_PUSH_SECRET` 来自友盟推送里的这两个字段，如下：
-
-![image](https://user-images.githubusercontent.com/2732303/77606227-ded8b680-6f51-11ea-9aa4-0378e79deaa7.png)
+配置厂商通道请先阅读[官方文档](https://developer.umeng.com/docs/66632/detail/98589)，主要是获取各个通道的 `appId`、`appKey`、`appSecret` 等数据，并保存到友盟后台的应用信息里。
 
 在 `MainApplication` 的 `onCreate` 方法进行初始化，如下：
 
@@ -120,8 +120,9 @@ override fun onCreate() {
     // 第三个参数表示是否显示调试信息
     RNTUmengPushModule.init(this, metaData, false)
     // 初始化友盟推送
-    // 第二个参数表示 app 在前台时是否展现通知
-    RNTUmengPushModule.push(this, true)
+    // 第二个参数填 AndroidManifest.xml 中 package 的值
+    // 第三个参数表示 app 在前台时是否展现通知
+    RNTUmengPushModule.push(this, "com.abc", true)
     // 初始化厂商通道，按需调用
     RNTUmengPushModule.huawei(this, metaData)
     RNTUmengPushModule.xiaomi(this, metaData)
@@ -130,8 +131,6 @@ override fun onCreate() {
     RNTUmengPushModule.meizu(this, metaData)
 }
 ```
-
-配置厂商通道请先阅读[官方文档](https://developer.umeng.com/docs/66632/detail/98589)，主要是获取各个通道的 `appId`、`appKey`、`appSecret` 等数据，并保存到友盟后台的应用信息里。
 
 ### 解决魅族的兼容问题
 
@@ -218,4 +217,52 @@ umengPush.addListener(
 
 // 启动
 umengPush.start()
+
+// 下面这些具体用法和注意事项，参考文档
+// https://developer.umeng.com/docs/67966/detail/98583#h1--tag-alias-4
+umengPush.getTasg().then(data => {
+  // success
+  data.tags
+})
+.catch(err => {
+  // failure
+})
+
+umengPush.addTags(['tag1', 'tag2']).then(data => {
+  // success
+  data.remain
+})
+.catch(err => {
+  // failure
+})
+
+umengPush.removeTags(['tag1', 'tag2']).then(data => {
+  // success
+  data.remain
+})
+.catch(err => {
+  // failure
+})
+
+umengPush.setAlias('alias', 'type').then(data => {
+  // success
+})
+.catch(err => {
+  // failure
+})
+
+umengPush.addAlias('alias', 'type').then(data => {
+  // success
+})
+.catch(err => {
+  // failure
+})
+
+umengPush.removeAlias('alias', 'type').then(data => {
+  // success
+})
+.catch(err => {
+  // failure
+})
+
 ```

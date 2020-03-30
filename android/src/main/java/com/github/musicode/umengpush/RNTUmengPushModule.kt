@@ -5,15 +5,11 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.Looper
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.umeng.commonsdk.UMConfigure
 import com.umeng.commonsdk.statistics.common.MLog
-import com.umeng.message.IUmengRegisterCallback
-import com.umeng.message.PushAgent
-import com.umeng.message.UmengMessageHandler
-import com.umeng.message.UmengNotificationClickHandler
+import com.umeng.message.*
 import com.umeng.message.entity.UMessage
 import com.umeng.message.tag.TagManager
 import org.android.agoo.huawei.HuaWeiRegister
@@ -22,6 +18,15 @@ import org.android.agoo.oppo.OppoRegister
 import org.android.agoo.vivo.VivoRegister
 import org.android.agoo.xiaomi.MiPushRegistar
 import org.json.JSONObject
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.Map
+import kotlin.collections.MutableMap
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.iterator
+import kotlin.collections.set
+import kotlin.collections.toTypedArray
 
 
 class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), ActivityEventListener {
@@ -47,7 +52,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         }
 
         // 初始化友盟推送
-        fun push(app: Application, notificaitonOnForeground: Boolean) {
+        fun push(app: Application, resourcePackageName: String, notificaitonOnForeground: Boolean) {
 
             val pushAgent = PushAgent.getInstance(app)
 
@@ -55,6 +60,9 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
             if (MLog.DEBUG) {
                 pushAgent.isPushCheck = true
             }
+
+            // 自定义资源包名
+            pushAgent.resourcePackageName = resourcePackageName
 
             // app 在前台时是否显示推送
             // 在 pushAgent.register 方法之前调用
@@ -157,6 +165,18 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     override fun initialize() {
         super.initialize()
         pushModule = this
+    }
+
+    override fun getConstants(): Map<String, Any>? {
+
+        val constants: MutableMap<String, Any> = HashMap()
+
+        constants["NOTIFICATION_PLAY_SERVER"] = MsgConstant.NOTIFICATION_PLAY_SERVER
+        constants["NOTIFICATION_PLAY_SDK_ENABLE"] = MsgConstant.NOTIFICATION_PLAY_SDK_ENABLE
+        constants["NOTIFICATION_PLAY_SDK_DISABLE"] = MsgConstant.NOTIFICATION_PLAY_SDK_DISABLE
+
+        return constants
+
     }
 
     @ReactMethod
@@ -305,11 +325,6 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
     @ReactMethod
     fun setAdvanced(options: ReadableMap) {
-
-        // 自定义资源包名
-        if (options.hasKey("resourcePackageName")) {
-            pushAgent.resourcePackageName = options.getString("resourcePackageName")
-        }
 
         // 通知栏可以设置最多显示通知的条数
         // 当通知栏显示数目大于设置值，此时再有新通知到达时，会把旧的一条通知隐藏
