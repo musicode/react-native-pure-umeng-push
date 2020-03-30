@@ -132,6 +132,16 @@ override fun onCreate() {
 }
 ```
 
+### 配置混淆规则
+
+在 `android/app/proguard-rules.pro` 添加以下混淆规则，注意替换自己的包名，并且删掉 `[` 和 `]`。
+
+```
+-keep public class [您的应用包名].R$*{
+public static final int *;
+}
+```
+
 ### 解决魅族的兼容问题
 
 在 `drawable` 目录下添加一个图标，命名为 `stat_sys_third_app_notify.png`，建议尺寸 `64px * 64px`，图标四周留有透明。若不添加此图标，可能在部分魅族手机上无法弹出通知。
