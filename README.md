@@ -155,7 +155,20 @@ public static final int *;
 ## Usage
 
 ```js
-import umengPush from 'react-native-pure-umeng-push'
+import umengPush, {
+  // 新浪微博
+  ALIAS_TYPE_SINA,
+  // 腾讯微博
+  ALIAS_TYPE_TENCENT,
+  ALIAS_TYPE_QQ,
+  ALIAS_TYPE_WEIXIN,
+  ALIAS_TYPE_BAIDU,
+  ALIAS_TYPE_RENREN,
+  ALIAS_TYPE_KAIXIN,
+  ALIAS_TYPE_DOUBAN,
+  ALIAS_TYPE_FACEBOOK,
+  ALIAS_TYPE_TWITTER,
+} from 'react-native-pure-umeng-push'
 
 // 注册获取 device token
 umengPush.addListener(
@@ -254,6 +267,9 @@ umengPush.removeTags(['tag1', 'tag2']).then(data => {
   // failure
 })
 
+
+// type 如果是第三方帐号，使用导入的常量
+// 如果是自建帐号体系，可传入自己产品的英文名或拼音
 umengPush.setAlias('alias', 'type').then(data => {
   // success
 })
