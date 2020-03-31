@@ -203,7 +203,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
                     list.pushString(tag)
                 }
                 map.putArray("tags", list)
-                promise.resolve(result)
+                promise.resolve(map)
             }
             else {
                 promise.reject("-1", "error")
