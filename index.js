@@ -5,6 +5,9 @@ const { RNTUmengPush } = NativeModules
 
 const eventEmitter = new NativeEventEmitter(RNTUmengPush)
 
+// 初始化时配置的渠道
+export const CHANNEL = RNTUmengPush.CHANNEL
+
 export const ALIAS_TYPE_SINA = 'sina'
 export const ALIAS_TYPE_TENCENT = 'tencent'
 export const ALIAS_TYPE_QQ = 'qq'

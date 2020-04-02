@@ -25,6 +25,8 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
         var launchMessage = ""
 
+        private var channel = ""
+
         private var deviceToken = ""
 
         private var pushModule: RNTUmengPushModule? = null
@@ -34,7 +36,8 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
             val appKey = metaData.getString("UMENG_APP_KEY", "").trim()
             val pushSecret = metaData.getString("UMENG_PUSH_SECRET", "").trim()
-            val channel = metaData.getString("UMENG_CHANNEL", "").trim()
+
+            channel = metaData.getString("UMENG_CHANNEL", "").trim()
 
             UMConfigure.setLogEnabled(debug)
             UMConfigure.init(app, appKey, channel, UMConfigure.DEVICE_TYPE_PHONE, pushSecret)
@@ -147,19 +150,21 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         return "RNTUmengPush"
     }
 
-    override fun onCatalystInstanceDestroy() {
-        super.onCatalystInstanceDestroy()
-        pushModule = null
-    }
-
     override fun initialize() {
         super.initialize()
         pushModule = this
     }
 
+    override fun onCatalystInstanceDestroy() {
+        super.onCatalystInstanceDestroy()
+        pushModule = null
+    }
+
     override fun getConstants(): Map<String, Any>? {
 
         val constants: MutableMap<String, Any> = HashMap()
+
+        constants["CHANNEL"] = channel
 
         constants["NOTIFICATION_PLAY_SERVER"] = MsgConstant.NOTIFICATION_PLAY_SERVER
         constants["NOTIFICATION_PLAY_SDK_ENABLE"] = MsgConstant.NOTIFICATION_PLAY_SDK_ENABLE

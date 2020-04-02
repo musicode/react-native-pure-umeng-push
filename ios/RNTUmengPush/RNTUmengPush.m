@@ -5,6 +5,7 @@
 #import <UMPush/UMessage.h>
 #import <React/RCTConvert.h>
 
+NSString *umengChannel = @"";
 RNTUmengPush *umengPushInstance;
 NSDictionary *umengLaunchOptions;
 
@@ -76,31 +77,10 @@ RCT_EXPORT_MODULE(RNTUmengPush);
     return YES;
 }
 
-- (instancetype)init {
-    if (self = [super init]) {
-        if (umengPushInstance) {
-            umengPushInstance = nil;
-        }
-        umengPushInstance = self;
-    }
-    return self;
-}
-
-- (void)dealloc {
-    umengPushInstance = nil;
-}
-
-- (NSArray<NSString *> *)supportedEvents {
-  return @[
-      @"register",
-      @"message",
-      @"localNotification",
-      @"remoteNotification",
-  ];
-}
-
 + (void)init:(NSString *)appKey channel:(NSString *)channel debug:(BOOL)debug {
 
+    umengChannel = channel;
+    
     [UMConfigure initWithAppkey:appKey channel:channel];
     [UMConfigure setLogEnabled:debug];
 
@@ -175,6 +155,35 @@ RCT_EXPORT_MODULE(RNTUmengPush);
 
     completionHandler(UIBackgroundFetchResultNewData);
 
+}
+
+- (instancetype)init {
+    if (self = [super init]) {
+        if (umengPushInstance) {
+            umengPushInstance = nil;
+        }
+        umengPushInstance = self;
+    }
+    return self;
+}
+
+- (void)dealloc {
+    umengPushInstance = nil;
+}
+
+- (NSArray<NSString *> *)supportedEvents {
+  return @[
+      @"register",
+      @"message",
+      @"localNotification",
+      @"remoteNotification",
+  ];
+}
+
+- (NSDictionary *)constantsToExport {
+    return @{
+         @"CHANNEL": umengChannel,
+     };
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler API_AVAILABLE(ios(10.0)) {
