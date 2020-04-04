@@ -25,11 +25,11 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
         var launchMessage = ""
 
+        var pushModule: RNTUmengPushModule? = null
+
         private var channel = ""
 
         private var deviceToken = ""
-
-        private var pushModule: RNTUmengPushModule? = null
 
         // 初始化友盟基础库
         fun init(app: Application, metaData: Bundle, debug: Boolean) {
@@ -45,7 +45,7 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
         }
 
         // 初始化友盟推送
-        fun push(app: Application, resourcePackageName: String, notificaitonOnForeground: Boolean) {
+        fun push(app: Application, resourcePackageName: String, notificationOnForeground: Boolean) {
 
             val pushAgent = PushAgent.getInstance(app)
 
@@ -59,7 +59,16 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
             // app 在前台时是否显示推送
             // 在 pushAgent.register 方法之前调用
-            pushAgent.setNotificaitonOnForeground(notificaitonOnForeground)
+            pushAgent.setNotificaitonOnForeground(notificationOnForeground)
+
+            // 通知栏可以设置最多显示通知的条数
+            // 当通知栏显示数目大于设置值，此时再有新通知到达时，会把旧的一条通知隐藏
+            // 参数可以设置为0~10之间任意整数，当参数为 0 时，表示不合并通知
+            pushAgent.displayNotificationNumber = 0
+
+            // 默认情况下，同一台设备在1分钟内收到同一个应用的多条通知时，不会重复提醒，同时在通知栏里新的通知会替换掉旧的通知
+            // 可以通过如下方法来设置冷却时间
+            pushAgent.muteDurationSeconds = 1
 
             pushAgent.messageHandler = object : UmengMessageHandler() {
                 override fun dealWithNotificationMessage(context: Context?, msg: UMessage?) {
@@ -321,19 +330,6 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     @ReactMethod
     fun setAdvanced(options: ReadableMap) {
 
-        // 通知栏可以设置最多显示通知的条数
-        // 当通知栏显示数目大于设置值，此时再有新通知到达时，会把旧的一条通知隐藏
-        // 参数可以设置为0~10之间任意整数，当参数为 0 时，表示不合并通知
-        if (options.hasKey("displayNotificationNumber")) {
-            pushAgent.displayNotificationNumber = options.getInt("displayNotificationNumber")
-        }
-
-        // 默认情况下，同一台设备在1分钟内收到同一个应用的多条通知时，不会重复提醒，同时在通知栏里新的通知会替换掉旧的通知
-        // 可以通过如下方法来设置冷却时间
-        if (options.hasKey("muteDurationSeconds")) {
-            pushAgent.muteDurationSeconds = options.getInt("muteDurationSeconds")
-        }
-
         // 为免过度打扰用户，SDK默认在“23:00”到“7:00”之间收到通知消息时不响铃，不振动，不闪灯
         // 如果需要改变默认的静音时间，可以使用以下接口：
         if (options.hasKey("noDisturbStartHour")
@@ -428,6 +424,11 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
         sendEvent("remoteNotification", map)
 
+    }
+
+    fun onNotificationClicked(message: String) {
+        val msg = UMessage(JSONObject(message))
+        onNotificationClicked(msg)
     }
 
     private fun onMessage(message: UMessage) {
