@@ -196,9 +196,12 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
 
         // 启动参数
         if (launchMessage.isNotEmpty()) {
-            val msg = UMessage(JSONObject(launchMessage))
-            map.putMap("notification", formatNotification(msg))
-            map.putMap("custom", formatCustom(msg))
+            try {
+                val msg = UMessage(JSONObject(launchMessage))
+                map.putMap("notification", formatNotification(msg))
+                map.putMap("custom", formatCustom(msg))
+            }
+            catch (e: Exception) {}
             launchMessage = ""
         }
 
@@ -427,8 +430,11 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
     }
 
     fun onNotificationClicked(message: String) {
-        val msg = UMessage(JSONObject(message))
-        onNotificationClicked(msg)
+        try {
+            val msg = UMessage(JSONObject(message))
+            onNotificationClicked(msg)
+        }
+        catch (e: Exception) {}
     }
 
     private fun onMessage(message: UMessage) {
