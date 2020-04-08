@@ -76,39 +76,46 @@ allprojects {
 `android/app/build.gradle` 根据不同的包填写不同的配置，如下：
 
 ```
-buildTypes {
-    debug {
-        manifestPlaceholders = [
-            UMENG_APP_KEY: '',
-            UMENG_PUSH_SECRET: '',
-            UMENG_CHANNEL: '',
-            HUAWEI_PUSH_APP_ID: '',
-            XIAOMI_PUSH_APP_ID: '',
-            XIAOMI_PUSH_APP_KEY: '',
-            OPPO_PUSH_APP_KEY: '',
-            OPPO_PUSH_APP_SECRET: '',
-            VIVO_PUSH_APP_ID: '',
-            VIVO_PUSH_APP_KEY: '',
-            MEIZU_PUSH_APP_ID: '',
-            MEIZU_PUSH_APP_KEY: '',
-        ]
+android {
+    buildTypes {
+        debug {
+            manifestPlaceholders = [
+                UMENG_APP_KEY: '',
+                UMENG_PUSH_SECRET: '',
+                UMENG_CHANNEL: '',
+                HUAWEI_PUSH_APP_ID: '',
+                XIAOMI_PUSH_APP_ID: '',
+                XIAOMI_PUSH_APP_KEY: '',
+                OPPO_PUSH_APP_KEY: '',
+                OPPO_PUSH_APP_SECRET: '',
+                VIVO_PUSH_APP_ID: '',
+                VIVO_PUSH_APP_KEY: '',
+                MEIZU_PUSH_APP_ID: '',
+                MEIZU_PUSH_APP_KEY: '',
+            ]
+        }
+        release {
+            manifestPlaceholders = [
+                UMENG_APP_KEY: '',
+                UMENG_PUSH_SECRET: '',
+                UMENG_CHANNEL: '',
+                HUAWEI_PUSH_APP_ID: '',
+                XIAOMI_PUSH_APP_ID: '',
+                XIAOMI_PUSH_APP_KEY: '',
+                OPPO_PUSH_APP_KEY: '',
+                OPPO_PUSH_APP_SECRET: '',
+                VIVO_PUSH_APP_ID: '',
+                VIVO_PUSH_APP_KEY: '',
+                MEIZU_PUSH_APP_ID: '',
+                MEIZU_PUSH_APP_KEY: '',
+            ]
+        }
     }
-    release {
-        manifestPlaceholders = [
-            UMENG_APP_KEY: '',
-            UMENG_PUSH_SECRET: '',
-            UMENG_CHANNEL: '',
-            HUAWEI_PUSH_APP_ID: '',
-            XIAOMI_PUSH_APP_ID: '',
-            XIAOMI_PUSH_APP_KEY: '',
-            OPPO_PUSH_APP_KEY: '',
-            OPPO_PUSH_APP_SECRET: '',
-            VIVO_PUSH_APP_ID: '',
-            VIVO_PUSH_APP_KEY: '',
-            MEIZU_PUSH_APP_ID: '',
-            MEIZU_PUSH_APP_KEY: '',
-        ]
-    }
+}
+
+dependencies {
+    implementation "com.umeng.umsdk:push:${rootProject.ext.umengPushVersion}"
+    implementation "com.umeng.umsdk:agoo-accs:${rootProject.ext.umengAgooAccsVersion}"
 }
 ```
 
