@@ -63,20 +63,20 @@ dependencies {
     implementation 'com.umeng.umsdk:xiaomi-umengaccs:1.1.4'
 
     // 基础组件库依赖(必须)
-    implementation 'com.umeng.umsdk:common:2.2.2'
-    implementation 'com.umeng.umsdk:utdid:1.5.2'
+    implementation "com.umeng.umsdk:common:${safeExtGet('umengCommonVersion', '2.2.2')}"
+    implementation "com.umeng.umsdk:utdid:${safeExtGet('umengUtdidVersion', '1.5.2')}"
 
-    // 友盟push相关依赖(必须)
-    implementation 'com.umeng.umsdk:push:6.0.5'
+    // 友盟 push 相关依赖(必须)
+    implementation "com.umeng.umsdk:push:${safeExtGet('umengPushVersion', '6.0.5')}"
 
     implementation 'com.umeng.umsdk:alicloud-httpdns:1.2.5'
     implementation 'com.umeng.umsdk:alicloud-utils:1.1.5'
     implementation 'com.umeng.umsdk:alicloud_beacon:1.0.1'
 
-    implementation 'com.umeng.umsdk:agoo-accs:3.3.8.8-open-fix2'
-    implementation 'com.umeng.umsdk:agoo_networksdk:3.5.5'
-    implementation 'com.umeng.umsdk:agoo_tlog:3.0.0.17'
-    implementation 'com.umeng.umsdk:agoo_tnet4android:3.1.14.9'
+    implementation "com.umeng.umsdk:agoo-accs:${safeExtGet('umengAgooAccsVersion', '3.3.8.8-open-fix2')}"
+    implementation "com.umeng.umsdk:agoo_networksdk:${safeExtGet('umengAgooNetworkVersion', '3.5.5')}"
+    implementation "com.umeng.umsdk:agoo_tlog:${safeExtGet('umengAgooTlogVersion', '3.0.0.17')}"
+    implementation "com.umeng.umsdk:agoo_tnet4android:${safeExtGet('umengAgooTnetVersion', '3.1.14.9')}"
 
 }
 

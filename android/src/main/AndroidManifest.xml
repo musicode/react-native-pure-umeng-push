@@ -70,12 +70,6 @@
             android:value="${VIVO_PUSH_APP_KEY}"
         />
 
-        <activity
-            android:name=".UmengPushActivity"
-            android:launchMode="singleTask"
-            android:exported="true"
-        />
-
         <!--魅族push应用定义消息receiver声明 -->
         <receiver android:name=".MeizuReceiver">
             <intent-filter>
