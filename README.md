@@ -54,12 +54,20 @@ didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
 
 ### Android
 
-`android/build.gradle` 添加友盟仓库.
+修改 `android/build.gradle`，如下：
 
 ```
+buildscript {
+    ext {
+        // 确保添加了这两个版本号
+        // 以后如果友盟有升级，直接改这里
+        umengPushVersion = "6.0.5"
+        umengAgooAccsVersion = "3.3.8.8-open-fix2"
+    }
+}
 allprojects {
     repositories {
-        // add this line
+        // 确保添加了友盟仓库
         maven { url 'https://dl.bintray.com/umsdk/release' }
     }
 }
@@ -112,10 +120,6 @@ buildTypes {
 override fun onCreate() {
     val metaData = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA).metaData
 
-    // 点击推送跳转到的 activity
-    // 通常 react native 只有一个 main activity
-    UmengPushActivity.mainActivityClass = MainActivity::class.java
-
     // 初始化友盟基础库
     // 第三个参数表示是否显示调试信息
     RNTUmengPushModule.init(this, metaData, false)
@@ -142,15 +146,43 @@ public static final int *;
 }
 ```
 
+### 创建华为、小米、魅族厂商通道使用的 Activity
+
+在你的包（比如 `com.abc`）下，新建一个 `umeng` 包，并创建一个 `Activity`，如下：
+
+```kotlin
+package com.abc.umeng
+
+import android.content.Intent
+import android.os.Bundle
+import android.os.PersistableBundle
+import com.finstao.MainActivity
+import com.github.musicode.umengpush.RNTUmengPushModule
+import com.umeng.message.UmengNotifyClickActivity
+
+class PushActivity : UmengNotifyClickActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
+        super.onCreate(savedInstanceState, persistentState)
+        // 这里配置一个页面，比如使用你自己的闪屏页
+        setContentView(R.layout.splash_screen)
+    }
+
+    override fun onMessage(intent: Intent?) {
+        super.onMessage(intent)
+        RNTUmengPushModule.handleMessage(this, MainActivity::class.java, intent)
+    }
+
+}
+```
+
+`打开指定页面` 填入你刚才创建的 Activity，比如 `com.abc.umeng.PushActivity`。
+
+![](https://user-images.githubusercontent.com/2732303/77288805-9764e700-6d13-11ea-91e1-3c2218f14bcb.png)
+
 ### 解决魅族的兼容问题
 
 在 `drawable` 目录下添加一个图标，命名为 `stat_sys_third_app_notify.png`，建议尺寸 `64px * 64px`，图标四周留有透明。若不添加此图标，可能在部分魅族手机上无法弹出通知。
-
-### 当 App 离线时，转为厂商通道下发推送
-
-打开指定页面填入 `com.github.musicode.umengpush.UmengPushActivity`。
-
-![](https://user-images.githubusercontent.com/2732303/77288805-9764e700-6d13-11ea-91e1-3c2218f14bcb.png)
 
 ## Usage
 
@@ -241,7 +273,7 @@ umengPush.addListener(
 // 启动
 umengPush.start()
 
-// 下面这些具体用法和注意事项，参考文档
+// 下面这些方法的具体用法和注意事项，请参考文档
 // https://developer.umeng.com/docs/67966/detail/98583#h1--tag-alias-4
 umengPush.getTasg().then(data => {
   // success
