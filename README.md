@@ -176,9 +176,21 @@ class PushActivity : UmengNotifyClickActivity() {
 }
 ```
 
+修改 `AndroidManifest.xml`，在 `MainActivity` 下方加一个新的 activity，如下：
+
+```xml
+<activity
+  android:name=".umeng.PushActivity"
+  android:launchMode="singleTask"
+  android:exported="true"
+/>
+```
+
 `打开指定页面` 填入你刚才创建的 Activity，比如 `com.abc.umeng.PushActivity`。
 
 ![](https://user-images.githubusercontent.com/2732303/77288805-9764e700-6d13-11ea-91e1-3c2218f14bcb.png)
+
+注意，如果在打包阶段用了别的包名，需改为对应的包名。
 
 ### 解决魅族的兼容问题
 
