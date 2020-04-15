@@ -39,12 +39,15 @@ android {
     }
 }
 
+repositories {
+    maven { url 'https://dl.bintray.com/umsdk/release' }
+    maven { url 'https://dl.bintray.com/umsdk/test' }
+}
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "com.facebook.react:react-native:${safeExtGet('reactNativeVersion', '+')}"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${safeExtGet('kotlinVersion', '1.3.40')}"
-
-
 
     implementation 'com.umeng.umsdk:huawei-basetb:2.6.3.306'
     implementation 'com.umeng.umsdk:huawei-pushtb:2.6.3.306'
