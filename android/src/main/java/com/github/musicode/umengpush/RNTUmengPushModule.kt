@@ -99,14 +99,6 @@ class RNTUmengPushModule(private val reactContext: ReactApplicationContext) : Re
                     }
                 }
 
-                override fun openUrl(context: Context?, msg: UMessage?) {
-                    this.launchApp(context, msg)
-                }
-
-                override fun openActivity(context: Context?, msg: UMessage?) {
-                    this.launchApp(context, msg)
-                }
-
                 override fun dealWithCustomAction(context: Context?, msg: UMessage?) {
                     this.launchApp(context, msg)
                 }
