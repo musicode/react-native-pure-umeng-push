@@ -61,7 +61,7 @@ buildscript {
     ext {
         // 确保添加了这两个版本号
         // 以后如果友盟有升级，直接改这里
-        umengPushVersion = "6.0.5"
+        umengPushVersion = "6.1.0"
         umengAgooAccsVersion = "3.3.8.8-open-fix2"
     }
 }
@@ -155,7 +155,7 @@ public static final int *;
 
 ### 创建华为、小米、魅族厂商通道使用的 Activity
 
-在你的包（比如 `com.abc`）下，新建一个 `umeng` 包，并创建一个 `Activity`，如下：
+在你的包（比如 `com.abc`）下，新建一个 `umeng` 包，并创建一个 `PushActivity`，如下：
 
 ```kotlin
 package com.abc.umeng
@@ -183,7 +183,7 @@ class PushActivity : UmengNotifyClickActivity() {
 }
 ```
 
-修改 `AndroidManifest.xml`，在 `MainActivity` 下方加一个新的 activity，如下：
+修改 `AndroidManifest.xml`，在 `MainActivity` 下方新增一个 `activity`，如下：
 
 ```xml
 <activity

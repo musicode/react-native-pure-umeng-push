@@ -35,6 +35,21 @@
     public static ** valueOf(java.lang.String);
 }
 
+# xiaomi
+-keep class org.android.agoo.xiaomi.MiPushBroadcastReceiver {*;}
+-dontwarn com.xiaomi.push.**
+
+# huawei
+-ignorewarnings
+-keepattributes *Annotation*
+-keepattributes Exceptions
+-keepattributes InnerClasses
+-keepattributes Signature
+-keepattributes SourceFile,LineNumberTable
+-keep class com.hianalytics.android.**{*;}
+-keep class com.huawei.updatesdk.**{*;}
+-keep class com.huawei.hms.**{*;}
+
 # oppo
 -keep public class * extends android.app.Service
 
