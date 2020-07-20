@@ -1,5 +1,7 @@
 # react-native-pure-umeng-push
 
+> 此库已废弃，请移步[新库](https://github.com/react-native-hero/umeng-push)
+
 友盟推送
 
 ## Installation
